@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StadiumMind — AI Stadium Operations Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine JS CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Chart JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts Outfit & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Inter:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        obsidian: '#050505',
+                        cardBg: '#111111',
+                        borderBg: 'rgba(255,255,255,0.08)',
+                        neonCyan: '#00E5FF',
+                        neonGreen: '#22C55E',
+                        neonYellow: '#F59E0B',
+                        neonRed: '#EF4444'
+                    },
+                    borderRadius: {
+                        '3xl': '24px'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #F0F6FC;
+            overflow-x: hidden;
+        }
+        .font-outfit {
+            font-family: 'Outfit', sans-serif;
+        }
+        /* Custom glassmorphism styling */
+        .glass-card {
+            background: rgba(17, 17, 17, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.15);
+        }
+        .glow-red {
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.2);
+        }
+        /* Spotlight animation */
+        @keyframes spotlight {
+            0% { transform: translate(-30%, -30%) rotate(0deg); }
+            50% { transform: translate(30%, 30%) rotate(180deg); }
+            100% { transform: translate(-30%, -30%) rotate(360deg); }
+        }
+        .spotlight {
+            background: radial-gradient(circle, rgba(0, 229, 255, 0.05) 0%, transparent 60%);
+            animation: spotlight 20s infinite linear;
+        }
+    </style>
+</head>
+<body x-data="appState()" x-init="initApp()" class="relative">
+
+    <!-- Spotlight Background Effect -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div class="absolute w-[1000px] h-[1000px] rounded-full spotlight blur-3xl opacity-50 top-0 left-0"></div>
+        <div class="absolute w-[800px] h-[800px] rounded-full spotlight blur-3xl opacity-30 bottom-0 right-0" style="animation-duration: 25s; animation-direction: reverse;"></div>
+        <!-- Particles overlay canvas -->
+        <canvas id="particles-canvas" class="absolute inset-0 w-full h-full opacity-40"></canvas>
+    </div>
+
+    <!-- Notification Toaster -->
+    <div class="fixed top-6 right-6 z-50 space-y-3 w-80">
+        <template x-for="toast in notifications" :key="toast.id">
+            <div 
+                class="glass-card p-4 rounded-2xl flex items-start gap-3 border-l-4 transition-all duration-300 animate-slide-in"
+                :class="toast.type === 'danger' ? 'border-neonRed glow-red' : (toast.type === 'warning' ? 'border-neonYellow' : 'border-neonCyan')"
+            >
+                <div class="w-2.5 h-2.5 rounded-full mt-1.5" :class="toast.type === 'danger' ? 'bg-neonRed animate-pulse' : (toast.type === 'warning' ? 'bg-neonYellow' : 'bg-neonCyan')"></div>
+                <div class="flex-1">
+                    <h5 class="text-xs font-bold text-white uppercase tracking-wider font-outfit" x-text="toast.title">Notification</h5>
+                    <p class="text-xs text-neutral-300 mt-1 font-light leading-relaxed" x-text="toast.message"></p>
+                </div>
+                <button @click="dismissNotification(toast.id)" class="text-neutral-500 hover:text-white">&times;</button>
+            </div>
+        </template>
+    </div>
+
+    <!-- Persistent Global Layout -->
+    <div class="min-h-screen flex flex-col z-10 relative" :class="highContrast ? 'contrast-125 saturate-150' : ''" :style="'font-size: ' + fontSize + 'px;'">
+        
+        <!-- Navigation Header (Fixed/Sticky Top) -->
+        <header class="sticky top-0 w-full glass-card border-b border-white/8 z-40 px-6 py-3.5 flex justify-between items-center rounded-b-3xl">
+            <!-- Left Branding -->
+            <div class="flex items-center gap-2 cursor-pointer transition-opacity duration-200 hover:opacity-90" @click="currentPage = 'landing'">
+                <div class="w-9 h-9 rounded-lg bg-neutral-900 border border-white/10 flex items-center justify-center transition-transform duration-300 hover:scale-105 group">
+                    <div class="relative w-5 h-5 flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full border border-neonCyan/40 animate-pulse"></div>
+                        <div class="absolute w-3.5 h-3.5 rounded-full border border-white/20"></div>
+                        <div class="w-1.5 h-1.5 rounded-full bg-neonCyan"></div>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="font-outfit font-bold tracking-tight text-white leading-none text-sm">StadiumMind</h1>
+                    <span class="text-[9px] text-neutral-400 font-medium tracking-wide uppercase leading-none block mt-1">Operational Intelligence</span>
+                </div>
+            </div>
+
+            <!-- Center Navigation Links (Desktop) -->
+            <nav class="hidden md:flex items-center gap-1.5 bg-black/40 border border-white/5 px-2 py-1 rounded-xl">
+                <template x-for="page in pages" :key="page.id">
+                    <button 
+                        @click="currentPage = page.id" 
+                        class="px-3 py-1.5 rounded-lg text-[11px] font-medium font-outfit transition-all duration-300"
+                        :class="currentPage === page.id ? 'bg-white/10 text-white shadow-sm' : 'text-neutral-400 hover:text-white hover:bg-white/[0.04]'"
+                        x-text="page.name"
+                    ></button>
+                </template>
+            </nav>
+
+            <!-- Right Controls -->
+            <div class="flex items-center gap-4">
+                
+                <!-- Notification Button & Interactive Panel -->
+                <div class="relative" id="notifications-container">
+                    <button 
+                        @click="notificationsOpen = !notificationsOpen; profileOpen = false;"
+                        @click.away="notificationsOpen = false"
+                        class="p-2 hover:bg-white/5 rounded-xl border border-white/5 text-neutral-400 hover:text-white transition-all relative"
+                        aria-label="Toggle notifications panel"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        <template x-if="panelNotifications.some(n => !n.read)">
+                            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-neonCyan animate-pulse"></span>
+                        </template>
+                    </button>
+
+                    <!-- Dropdown Panel -->
+                    <div 
+                        x-show="notificationsOpen"
+                        x-transition
+                        class="absolute right-0 mt-3 w-80 glass-card rounded-2xl border border-white/10 shadow-2xl p-4 space-y-3 z-50"
+                        style="display: none;"
+                    >
+                        <div class="flex justify-between items-center pb-2 border-b border-white/5">
+                            <h4 class="text-xs font-bold text-white uppercase tracking-wider font-outfit flex items-center gap-1.5">
+                                Notifications
+                            </h4>
+                            <div class="flex gap-2">
+                                <button 
+                                    @click="panelNotifications.forEach(n => n.read = true); addNotification('Notifications', 'All marked as read.', 'info');"
+                                    class="text-[9px] text-neonCyan hover:underline font-mono uppercase font-bold"
+                                >
+                                    Mark all read
+                                </button>
+                                <button 
+                                    @click="panelNotifications = []; addNotification('Notifications', 'Cleared all.', 'info');"
+                                    class="text-[9px] text-neonRed hover:underline font-mono uppercase font-bold"
+                                >
+                                    Clear all
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 max-h-60 overflow-y-auto">
+                            <template x-if="panelNotifications.length === 0">
+                                <div class="text-center py-6 text-[10px] text-neutral-500 font-mono">No active notifications.</div>
+                            </template>
+                            <template x-for="item in panelNotifications" :key="item.id">
+                                <div 
+                                    class="p-2.5 rounded-xl border transition-all flex items-start gap-2"
+                                    :class="item.read ? 'bg-white/[0.02] border-white/5' : 'bg-neonCyan/5 border-neonCyan/20'"
+                                >
+                                    <div 
+                                        class="w-2 h-2 rounded-full mt-1.5 shrink-0"
+                                        :class="item.type === 'danger' ? 'bg-neonRed' : (item.type === 'warning' ? 'bg-neonYellow' : (item.type === 'success' ? 'bg-neonGreen' : 'bg-neonCyan'))"
+                                    ></div>
+                                    <div class="flex-1 space-y-0.5">
+                                        <div class="flex justify-between items-baseline gap-2">
+                                            <span class="text-[10px] font-bold text-white uppercase tracking-wide" x-text="item.title"></span>
+                                            <span class="text-[8px] text-neutral-500 shrink-0 font-mono" x-text="item.time"></span>
+                                        </div>
+                                        <p class="text-[10px] text-neutral-300 font-light leading-relaxed" x-text="item.message"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Button & Interactive Dropdown -->
+                <div class="relative" id="profile-container">
+                    <button 
+                        @click="profileOpen = !profileOpen; notificationsOpen = false;"
+                        @click.away="profileOpen = false"
+                        class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-xs text-white border border-white/10 transition-all cursor-pointer"
+                        aria-label="User Profile Dropdown"
+                    >
+                        JD
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div 
+                        x-show="profileOpen"
+                        x-transition
+                        class="absolute right-0 mt-3 w-48 glass-card rounded-2xl border border-white/10 shadow-2xl p-2.5 space-y-1.5 z-50"
+                        style="display: none;"
+                    >
+                        <div class="px-3 py-2 border-b border-white/5 space-y-0.5">
+                            <div class="text-xs font-bold text-white">John Doe</div>
+                            <div class="text-[9px] text-neonCyan font-mono">OPERATIONS_ADMIN</div>
+                        </div>
+                        
+                        <button 
+                            @click="currentPage = 'settings'; profileOpen = false;" 
+                            class="w-full text-left px-3 py-2 text-xs text-neutral-300 hover:text-white hover:bg-white/5 rounded-xl transition-all font-outfit"
+                        >
+                            My Profile
+                        </button>
+                        <button 
+                            @click="currentPage = 'settings'; profileOpen = false;" 
+                            class="w-full text-left px-3 py-2 text-xs text-neutral-300 hover:text-white hover:bg-white/5 rounded-xl transition-all font-outfit"
+                        >
+                            Settings
+                        </button>
+                        <button 
+                            @click="currentPage = 'settings'; profileOpen = false;" 
+                            class="w-full text-left px-3 py-2 text-xs text-neutral-300 hover:text-white hover:bg-white/5 rounded-xl transition-all font-outfit"
+                        >
+                            Preferences
+                        </button>
+                        <button 
+                            @click="addNotification('Help desk info', 'Operations support line: ext. 9012', 'info'); profileOpen = false;" 
+                            class="w-full text-left px-3 py-2 text-xs text-neutral-300 hover:text-white hover:bg-white/5 rounded-xl transition-all font-outfit"
+                        >
+                            Help & Support
+                        </button>
+                        
+                        <div class="border-t border-white/5 my-1"></div>
+                        
+                        <button 
+                            @click="addNotification('Platform link shutdown', 'Lead Admin session ended.', 'warning'); profileOpen = false;" 
+                            class="w-full text-left px-3 py-2 text-xs text-neonRed hover:bg-neonRed/10 rounded-xl transition-all font-outfit font-semibold"
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Hamburger Button -->
+                <button 
+                    @click="mobileNavOpen = !mobileNavOpen" 
+                    class="md:hidden p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-neutral-400 hover:text-white transition-all"
+                    aria-label="Toggle Navigation Menu"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path x-show="!mobileNavOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        <path x-show="mobileNavOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" style="display: none;"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile Navigation Dropdown Drawer -->
+        <div 
+            x-show="mobileNavOpen"
+            x-transition
+            class="md:hidden glass-card mx-6 mt-2 p-3 rounded-2xl border border-white/8 space-y-1 z-30 relative"
+            style="display: none;"
+        >
+            <template x-for="page in pages" :key="page.id">
+                <button 
+                    @click="currentPage = page.id; mobileNavOpen = false;" 
+                    class="w-full text-left px-4 py-2.5 rounded-xl text-xs font-outfit font-semibold transition-all duration-200"
+                    :class="currentPage === page.id ? 'bg-neonCyan/15 text-neonCyan shadow-inner' : 'text-neutral-300 hover:text-white hover:bg-white/5'"
+                    x-text="page.name"
+                ></button>
+            </template>
+        </div>
+
+        <!-- Pages Container -->
+        <div class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+
+            <!-- 1. LANDING PAGE -->
+            <div x-show="currentPage === 'landing'" class="space-y-16 py-12">
+                <div class="text-center space-y-6 max-w-4xl mx-auto">
+                    <span class="px-4 py-1.5 rounded-full bg-neonCyan/10 border border-neonCyan/20 text-neonCyan font-bold text-xs uppercase tracking-widest font-outfit inline-flex items-center gap-1.5 shadow-lg shadow-cyan-500/5">
+                        <span class="w-2 h-2 bg-neonCyan rounded-full animate-ping"></span> Advanced OS MVP
+                    </span>
+                    <h2 class="text-5xl md:text-8xl font-outfit font-black tracking-tight leading-none bg-gradient-to-b from-white to-neutral-400 bg-clip-text text-transparent">
+                        The AI Operating System <br>for Stadium Operations
+                    </h2>
+                    <p class="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto font-light leading-relaxed">
+                        Autonomous agent coordination, predictive crowd forecasting, and visual localization—engineered for modern stadium operations.
+                    </p>
+                    <div class="flex justify-center gap-4 pt-4">
+                        <button @click="currentPage = 'dashboard'" class="px-8 py-4 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-2xl text-sm transition-all font-outfit glow-cyan shadow-lg shadow-cyan-500/10 hover:scale-105 transform">
+                            Launch Dashboard
+                        </button>
+                        <button @click="currentPage = 'copilot'" class="px-8 py-4 glass-card hover:bg-white/5 rounded-2xl text-sm font-extrabold transition-all font-outfit hover:scale-105 transform">
+                            Fan Copilot
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Key statistics panel -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                    <template x-for="stat in [
+                        { val: '80,000+', label: 'Expected Stadium Ingress' },
+                        { val: '120+', label: 'Agentic Workflows' },
+                        { val: '24/7', label: 'Telemetry Monitoring' },
+                        { val: '99.2%', label: 'Prediction Accuracy' }
+                    ]" :key="stat.label">
+                        <div class="glass-card p-6 rounded-3xl text-center space-y-1">
+                            <div class="text-3xl md:text-5xl font-outfit font-black text-white" x-text="stat.val"></div>
+                            <div class="text-[10px] text-neutral-400 uppercase tracking-wider" x-text="stat.label"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- 2. COMMAND CENTER (DASHBOARD) -->
+            <div x-show="currentPage === 'dashboard'" class="space-y-6">
+                
+                <!-- AI Live Summary Briefing (Top Banner) -->
+                <div class="glass-card p-6 rounded-3xl border-l-4 border-neonCyan flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                    <div class="space-y-1 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded bg-neonCyan/10 text-neonCyan text-[10px] font-bold uppercase tracking-wider font-mono">Live Briefing</span>
+                            <span class="text-[9px] text-neutral-500 font-mono">Updated every 5s</span>
+                        </div>
+                        <!-- Typing animation text -->
+                        <p class="text-sm text-neutral-200 font-light leading-relaxed" x-text="liveBriefingText"></p>
+                    </div>
+                    <div class="flex gap-2">
+                        <!-- Switch Mode / Preset Simulation buttons -->
+                        <button @click="simulateConcourseSpill()" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/8 rounded-xl text-xs text-white font-semibold transition-all">
+                            Simulate Gate Ingress Spike
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grid layout of Telemetry widgets -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Widget 1: Stadium Health Score Gauge -->
+                    <div class="glass-card p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Stadium Health Index</h4>
+                                <span class="text-xs text-neutral-500">Telemetry safety ratio</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-neonGreen/10 text-neonGreen font-mono font-bold" x-text="telemetry.health_score > 90 ? 'STABLE' : 'ALERT'"></span>
+                        </div>
+                        <div class="flex items-center justify-center py-6">
+                            <div class="relative w-36 h-36 flex items-center justify-center rounded-full border border-white/5">
+                                <div class="absolute inset-2 rounded-full border-4 border-dashed border-white/10 animate-spin" style="animation-duration: 15s;"></div>
+                                <div class="text-center z-10">
+                                    <span class="text-4xl font-outfit font-black text-white" x-text="telemetry.health_score + '%'">98%</span>
+                                    <span class="block text-[9px] text-neutral-400 uppercase tracking-wider mt-1">Operational</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-neonCyan to-neonGreen transition-all duration-500" :style="'width: ' + telemetry.health_score + '%'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Widget 2: Crowd Gates occupancy wait list -->
+                    <div class="glass-card p-6 rounded-3xl space-y-4 col-span-1 md:col-span-2">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Gate Ingress load / Wait Times</h4>
+                                <span class="text-xs text-neutral-500">Live scanning checkpoints</span>
+                            </div>
+                            <span class="text-[10px] text-neutral-400 font-mono" x-text="'Total Scans: ' + totalAttendeeScans"></span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <template x-for="(gateData, gateName) in telemetry.crowd.gates" :key="gateName">
+                                <div class="p-4 bg-white/5 border border-white/5 rounded-2xl space-y-2">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span x-text="gateName" class="text-white font-bold font-outfit"></span>
+                                        <span x-text="gateData.load_percentage + '% load'" :class="gateData.load_percentage > 85 ? 'text-neonRed font-black' : 'text-neutral-400'"></span>
+                                    </div>
+                                    <div class="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden">
+                                        <div class="h-full transition-all duration-500" :class="gateData.load_percentage > 85 ? 'bg-neonRed animate-pulse' : 'bg-neonCyan'" :style="'width: ' + gateData.load_percentage + '%'"></div>
+                                    </div>
+                                    <div class="flex justify-between text-[10px] text-neutral-500">
+                                        <span>Wait: <span class="font-bold text-white" x-text="gateData.wait_time_mins + 'm'"></span></span>
+                                        <span>Throughput: <span class="font-bold text-white" x-text="Math.round(gateData.load_percentage * 1.5) + '/m'"></span></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary dashboard grid widgets -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Widget 3: Resources status counts -->
+                    <div class="glass-card p-5 rounded-3xl space-y-4">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Resource deployment</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="p-3 bg-white/5 rounded-2xl text-center">
+                                <span class="text-xl font-bold font-outfit text-neonCyan" x-text="telemetry.volunteers.length"></span>
+                                <span class="block text-[9px] text-neutral-500 mt-0.5 uppercase font-mono">Volunteers</span>
+                            </div>
+                            <div class="p-3 bg-white/5 rounded-2xl text-center">
+                                <span class="text-xl font-bold font-outfit text-neonGreen" x-text="telemetry.medical_teams.length"></span>
+                                <span class="block text-[9px] text-neutral-500 mt-0.5 uppercase font-mono">Medical</span>
+                            </div>
+                            <div class="p-3 bg-white/5 rounded-2xl text-center col-span-2">
+                                <span class="text-xl font-bold font-outfit text-neonYellow" x-text="telemetry.security_teams.length"></span>
+                                <span class="block text-[9px] text-neutral-500 mt-0.5 uppercase font-mono">Security Units</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Widget 4: Transport and Parking levels -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Transit status</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-neutral-400">Parking Capacity</span>
+                                <span class="text-white" x-text="telemetry.transport.parking.occupancy_percentage + '%'"></span>
+                            </div>
+                            <div class="w-full bg-neutral-900 h-1.5 rounded-full overflow-hidden">
+                                <div class="h-full bg-neonCyan transition-all duration-500" :style="'width: ' + telemetry.transport.parking.occupancy_percentage + '%'"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-neutral-500 font-mono">
+                                <span>Free spots: <span class="text-white" x-text="telemetry.transport.parking.total_spaces - telemetry.transport.parking.occupied_spaces"></span></span>
+                                <span>Train wait: <span class="text-neonCyan font-bold" x-text="telemetry.transport.train_arrivals_mins[0] + ' mins'"></span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Widget 5: Sustainability tracking -->
+                    <div class="glass-card p-5 rounded-3xl space-y-2 col-span-1 md:col-span-2">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Sustainability carbon offsets</h4>
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-neonGreen/10 flex items-center justify-center text-neonGreen font-bold text-xs uppercase">CO2</div>
+                                <div>
+                                    <span class="text-[9px] text-neutral-400 block uppercase">Carbon Saved</span>
+                                    <span class="text-sm font-bold font-mono text-neonGreen" x-text="telemetry.sustainability.carbon_saved_kg + ' kg'"></span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-neonCyan/10 flex items-center justify-center text-neonCyan font-bold text-xs uppercase">BMS</div>
+                                <div>
+                                    <span class="text-[9px] text-neutral-400 block uppercase">Energy Offset</span>
+                                    <span class="text-sm font-bold font-mono text-neonCyan" x-text="telemetry.sustainability.energy_saved_kw + ' kW'"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. STADIUMMIND ASSISTANT -->
+            <div x-show="currentPage === 'copilot'" class="max-w-4xl mx-auto space-y-6">
+                
+                <!-- Top Control Bar Input -->
+                <div class="glass-card p-6 rounded-3xl space-y-4 glow-cyan">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-neonCyan to-green-500 flex items-center justify-center font-bold text-obsidian text-sm font-outfit">S</div>
+                            <div>
+                                <h3 class="font-outfit font-bold text-white text-sm">StadiumMind Assistant</h3>
+                                <span class="text-[9px] text-neonCyan uppercase tracking-widest font-mono">Operations Engine Hub Online</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <button 
+                                @click="fanAccessibility = !fanAccessibility" 
+                                class="px-3 py-1.5 rounded-xl text-[9px] font-extrabold uppercase border transition-all duration-200"
+                                :class="fanAccessibility ? 'bg-neonCyan/20 text-neonCyan border-neonCyan' : 'border-white/10 text-neutral-400'"
+                            >
+                                Wheelchair path
+                            </button>
+                            <select x-model="fanLanguage" class="bg-neutral-900 text-white text-[10px] px-2.5 py-1.5 rounded-xl border border-white/10 focus:outline-none">
+                                <option value="en">English</option>
+                                <option value="es">Español</option>
+                                <option value="fr">Français</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="flex gap-2">
+                        <button 
+                            @click="triggerPresetCopilotQuery('OCR_where_am_i')"
+                            class="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-neonCyan transition-all flex items-center justify-center"
+                            title="Scan Location Photo"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </button>
+                        <input 
+                            type="text" 
+                            x-model="userMessage"
+                            @keydown.enter="sendChatMessage()"
+                            placeholder="Query navigation routing, nearest concession lines, or restroom locations..." 
+                            class="flex-1 bg-neutral-900 border border-white/10 rounded-2xl px-4 text-xs text-white focus:outline-none focus:border-neonCyan transition-all"
+                        />
+                        <button 
+                            @click="sendChatMessage()" 
+                            class="px-6 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-2xl text-xs transition-all font-outfit"
+                        >
+                            Execute Search
+                        </button>
+                    </div>
+
+                    {/* Quick Search Preset Tags */}
+                    <div class="flex gap-2 overflow-x-auto pt-2 border-t border-white/5">
+                        <button @click="triggerPresetCopilotQuery('Closest concession with no line?')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
+                            🍔 concession wait times
+                        </button>
+                        <button @click="triggerPresetCopilotQuery('Seat Sec 112A wheelchair route?')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
+                            ♿ Wheelchair stepless route
+                        </button>
+                        <button @click="triggerPresetCopilotQuery('OCR_where_am_i')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
+                            📷 OCR Camera guide
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading checklists -->
+                <div x-show="chatLoading" class="glass-card p-6 rounded-3xl space-y-3">
+                    <div class="text-[10px] text-neutral-400 font-mono tracking-widest uppercase animate-pulse">Running multi-agent routing queries...</div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <template x-for="step in agentLoaderSteps" :key="step.name">
+                            <div class="p-3 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between text-xs font-mono">
+                                <span :class="step.done ? 'text-white' : 'text-neutral-500'" x-text="step.name.split(' ')[0] + ' Agent'"></span>
+                                <span :class="step.done ? 'text-neonGreen' : 'text-neutral-600 animate-pulse'" x-text="step.done ? '✓' : '...'"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Response Area Rendered as Structured Cards -->
+                <div x-show="lastCopilotResult" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- 1. Navigation Route Details -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-neonCyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg> Navigation Route
+                        </h4>
+                        <p class="text-xs text-white leading-relaxed font-light" x-text="lastCopilotResult.navigation"></p>
+                    </div>
+
+                    <!-- 2. ETA & Time Details -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-neonCyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Estimated Duration
+                        </h4>
+                        <div class="text-2xl font-black font-outfit text-white" x-text="lastCopilotResult.eta"></div>
+                        <span class="text-[10px] text-neutral-500 font-mono">Adjusted for crowd densities</span>
+                    </div>
+
+                    <!-- 3. Concourse Crowd Levels -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-neonCyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> Crowd Level Index
+                        </h4>
+                        <div class="text-xl font-bold font-outfit text-neonYellow" x-text="lastCopilotResult.crowdLevel"></div>
+                        <span class="text-[10px] text-neutral-500 font-mono">Moderate ingress velocities</span>
+                    </div>
+
+                    <!-- 4. Suggested Path Nodes (Step-by-step list) -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3 col-span-1 md:col-span-2">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Suggested Path Nodes</h4>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <template x-for="(step, idx) in lastCopilotResult.suggestedRoute" :key="idx">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-3 py-1.5 bg-white/5 border border-white/5 rounded-xl text-[10px] font-mono text-white" x-text="step"></span>
+                                    <span class="text-neutral-600 text-xs" x-show="idx < lastCopilotResult.suggestedRoute.length - 1">&rarr;</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- 5. Food Concessions status -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Nearby Concessionaires</h4>
+                        <p class="text-xs text-neutral-300 font-light leading-relaxed" x-text="lastCopilotResult.food"></p>
+                    </div>
+
+                    <!-- 6. Accessibility Details -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3 col-span-1 md:col-span-2">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Accessibility Accommodation</h4>
+                        <p class="text-xs text-neutral-300 font-light leading-relaxed" x-text="lastCopilotResult.accessibility"></p>
+                    </div>
+
+                    <!-- 7. Safety Warnings -->
+                    <div class="glass-card p-5 rounded-3xl space-y-3">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono flex items-center gap-1.5 text-neonYellow">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Safety Warnings
+                        </h4>
+                        <ul class="text-xs text-neutral-300 space-y-1.5 list-disc list-inside font-light">
+                            <template x-for="w in lastCopilotResult.warnings">
+                                <li class="leading-relaxed" x-text="w"></li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- 8. Sources & Grounding -->
+                    <div class="glass-card p-5 rounded-3xl space-y-2 col-span-1 md:col-span-3 border-t border-white/10 bg-white/[0.02]">
+                        <span class="text-[9px] text-neutral-500 uppercase tracking-wider block font-mono">Information Sources and Grounding Log</span>
+                        <div class="text-[10px] text-neutral-400 font-mono" x-text="'Grounding matrix verified: ' + lastCopilotResult.sources"></div>
+                    </div>
+
+                </div>
+
+                <div x-show="!lastCopilotResult" class="glass-card p-12 rounded-3xl text-center text-neutral-500 text-xs">
+                    Enter your seat number or scan a visual camera sign above to generate structured operations details.
+                </div>
+
+            </div>
+
+            <!-- 4. DIGITAL TWIN -->
+            <div x-show="currentPage === 'digital_twin'" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- Layer controls panel -->
+                    <div class="glass-card p-6 rounded-3xl space-y-4 h-fit">
+                        <h3 class="text-sm font-outfit font-extrabold text-white">Live Twin Console</h3>
+                        <p class="text-xs text-neutral-400 font-light">Toggle coordinate layer overlays and live heatmap parameters.</p>
+                        
+                        <div class="space-y-2 pt-2 border-t border-white/5">
+                            <label class="flex items-center gap-3 text-xs text-neutral-300 cursor-pointer select-none">
+                                <input type="checkbox" x-model="twinFilters.volunteers" class="rounded border-white/8 text-neonCyan bg-neutral-900 focus:ring-0">
+                                <span>Volunteers (<span x-text="telemetry.volunteers.length"></span>)</span>
+                            </label>
+                            <label class="flex items-center gap-3 text-xs text-neutral-300 cursor-pointer select-none">
+                                <input type="checkbox" x-model="twinFilters.medical" class="rounded border-white/8 text-neonCyan bg-neutral-900 focus:ring-0">
+                                <span>Medical Squads (<span x-text="telemetry.medical_teams.length"></span>)</span>
+                            </label>
+                            <label class="flex items-center gap-3 text-xs text-neutral-300 cursor-pointer select-none">
+                                <input type="checkbox" x-model="twinFilters.security" class="rounded border-white/8 text-neonCyan bg-neutral-900 focus:ring-0">
+                                <span>Security Patrols (<span x-text="telemetry.security_teams.length"></span>)</span>
+                            </label>
+                            <label class="flex items-center gap-3 text-xs text-neutral-300 cursor-pointer select-none">
+                                <input type="checkbox" x-model="twinFilters.incidents" class="rounded border-white/8 text-neonCyan bg-neutral-900 focus:ring-0">
+                                <span>Active Alerts (<span x-text="telemetry.incidents.length"></span>)</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Map Actions -->
+                        <div class="pt-4 border-t border-white/5 space-y-2">
+                            <button @click="highlightActiveRouteDemo()" class="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/8 rounded-xl text-xs text-neonCyan font-bold transition-all">
+                                Highlight Emergency Route
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Main Interactive Map Canvas -->
+                    <div class="glass-card p-4 rounded-3xl col-span-1 md:col-span-3 h-[520px] relative overflow-hidden bg-black/50">
+                        <svg class="w-full h-full" viewBox="0 0 800 500" id="stadium-svg-layout">
+                            <!-- Outer boundaries and rings -->
+                            <defs>
+                                <radialGradient id="heatmap-gradient-1" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stop-color="#EF4444" stop-opacity="0.4" />
+                                    <stop offset="100%" stop-color="#EF4444" stop-opacity="0" />
+                                </radialGradient>
+                                <radialGradient id="heatmap-gradient-2" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.35" />
+                                    <stop offset="100%" stop-color="#F59E0B" stop-opacity="0" />
+                                </radialGradient>
+                            </defs>
+
+                            <!-- Pulsing Heatmap Zones -->
+                            <circle cx="360" cy="210" r="140" fill="url(#heatmap-gradient-1)" class="animate-pulse" />
+                            <circle cx="580" cy="300" r="100" fill="url(#heatmap-gradient-2)" class="animate-pulse" style="animation-duration: 4s;" />
+
+                            <!-- Outer boundaries and rings -->
+                            <ellipse cx="400" cy="250" rx="350" ry="210" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6" />
+                            
+                            <!-- Concentric Crowd Pulse rings -->
+                            <ellipse cx="400" cy="250" rx="280" ry="160" fill="none" stroke="rgba(0, 229, 255, 0.1)" stroke-width="1.5" class="animate-ping" style="animation-duration: 5s;" />
+                            <ellipse cx="400" cy="250" rx="220" ry="120" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2" />
+                            
+                            <!-- Field rendering -->
+                            <rect x="300" y="170" width="200" height="160" fill="rgba(0, 229, 255, 0.03)" stroke="rgba(0, 229, 255, 0.2)" stroke-width="2" rx="4" />
+                            <circle cx="400" cy="250" r="30" fill="none" stroke="rgba(0, 229, 255, 0.2)" stroke-width="2" />
+
+                            <!-- Clickable Sector Divisions (Hover overlay sectors) -->
+                            <g class="opacity-0 hover:opacity-20 cursor-pointer transition-all">
+                                <!-- Sector A North -->
+                                <path d="M 200,80 L 600,80 L 400,250 Z" fill="#00E5FF" @click="selectedTwinElement = { id: 'SEC_NORTH', name: 'Sector A (North Entrance)', status: 'High ingress flow - 12m wait', languages: ['en', 'es'] }" />
+                                <!-- Sector B East -->
+                                <path d="M 600,80 L 600,420 L 400,250 Z" fill="#00E5FF" @click="selectedTwinElement = { id: 'SEC_EAST', name: 'Sector B (East Concourse)', status: 'Moderate wait lines - 8m wait', languages: ['en', 'fr'] }" />
+                                <!-- Sector C South -->
+                                <path d="M 200,420 L 600,420 L 400,250 Z" fill="#00E5FF" @click="selectedTwinElement = { id: 'SEC_SOUTH', name: 'Sector C (South Entrance)', status: 'Empty lines - under 4m wait', languages: ['en', 'es', 'pt'] }" />
+                                <!-- Sector D West -->
+                                <path d="M 200,80 L 200,420 L 400,250 Z" fill="#00E5FF" @click="selectedTwinElement = { id: 'SEC_WEST', name: 'Sector D (West Concourse)', status: 'High density - 10m wait', languages: ['en', 'de'] }" />
+                            </g>
+
+                            <!-- Label tags for sectors -->
+                            <text x="400" y="70" fill="rgba(255,255,255,0.4)" fontSize="10" textAnchor="middle">SECTOR A (NORTH)</text>
+                            <text x="710" y="255" fill="rgba(255,255,255,0.4)" fontSize="10" textAnchor="middle">SECTOR B (EAST)</text>
+                            <text x="400" y="445" fill="rgba(255,255,255,0.4)" fontSize="10" textAnchor="middle">SECTOR C (SOUTH)</text>
+                            <text x="90" y="255" fill="rgba(255,255,255,0.4)" fontSize="10" textAnchor="middle">SECTOR D (WEST)</text>
+
+                            <!-- Active Route Line Overlay (for Emergency Dispatch / navigation demo) -->
+                            <path x-show="activeMapRoute" :d="activeMapRoutePath" fill="none" stroke="#FF4136" stroke-width="4" stroke-dasharray="8,8" class="animate-dash" />
+
+                            <!-- Volunteers GPS coordinates points -->
+                            <g x-show="twinFilters.volunteers">
+                                <template x-for="vol in telemetry.volunteers" :key="vol.id">
+                                    <circle 
+                                        :cx="400 + ((vol.lng - (-74.0743)) * 55000)" 
+                                        :cy="250 - ((vol.lat - 40.8135) * 55000)" 
+                                        r="6" 
+                                        fill="#00E5FF" 
+                                        class="cursor-pointer hover:r-9 transition-all"
+                                        @click="selectedTwinElement = vol"
+                                    />
+                                </template>
+                            </g>
+
+                            <!-- Medical Units coordinates -->
+                            <g x-show="twinFilters.medical">
+                                <template x-for="med in telemetry.medical_teams" :key="med.id">
+                                    <circle 
+                                        :cx="400 + ((med.lng - (-74.0743)) * 55000)" 
+                                        :cy="250 - ((med.lat - 40.8135) * 55000)" 
+                                        r="8" 
+                                        fill="#22C55E" 
+                                        class="cursor-pointer hover:r-10 transition-all"
+                                        @click="selectedTwinElement = med"
+                                    />
+                                </template>
+                            </g>
+
+                            <!-- Security coordinate dots -->
+                            <g x-show="twinFilters.security">
+                                <template x-for="sec in telemetry.security_teams" :key="sec.id">
+                                    <circle 
+                                        :cx="400 + ((sec.lng - (-74.0743)) * 55000)" 
+                                        :cy="250 - ((sec.lat - 40.8135) * 55000)" 
+                                        r="7" 
+                                        fill="#F59E0B" 
+                                        class="cursor-pointer hover:r-9 transition-all"
+                                        @click="selectedTwinElement = sec"
+                                    />
+                                </template>
+                            </g>
+
+                            <!-- Active incidents coordinate markers -->
+                            <g x-show="twinFilters.incidents">
+                                <template x-for="inc in telemetry.incidents" :key="inc.id">
+                                    <!-- Flashing marker -->
+                                    <g @click="selectedTwinElement = inc" class="cursor-pointer">
+                                        <circle 
+                                            cx="350" 
+                                            cy="225" 
+                                            r="16" 
+                                            fill="rgba(239, 68, 68, 0.2)" 
+                                            class="animate-ping" 
+                                        />
+                                        <polygon points="350,215 340,235 360,235" fill="#EF4444" />
+                                    </g>
+                                </template>
+                            </g>
+                        </svg>
+
+                        <!-- Live selection overlay details -->
+                        <div class="absolute bottom-4 left-4 glass-card p-4 rounded-2xl max-w-xs space-y-2" x-show="selectedTwinElement">
+                            <div class="flex justify-between items-center">
+                                <h4 class="font-outfit font-extrabold text-xs text-white" x-text="selectedTwinElement.name || selectedTwinElement.category">Resource Info</h4>
+                                <button @click="selectedTwinElement = null" class="text-xs text-neutral-400 hover:text-white">&times;</button>
+                            </div>
+                            <div class="text-xs text-neutral-300 space-y-1 font-mono">
+                                <p>ID: <span class="text-neonCyan" x-text="selectedTwinElement.id"></span></p>
+                                <p>Status: <span class="text-white" x-text="selectedTwinElement.status || 'Active Dispatch'"></span></p>
+                                <template x-if="selectedTwinElement.languages">
+                                    <p>Lang: <span class="text-neonGreen" x-text="selectedTwinElement.languages.join(', ')"></span></p>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. EMERGENCY -->
+            <div x-show="currentPage === 'emergency'" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Trigger Override Buttons -->
+                    <div class="glass-card p-6 rounded-3xl space-y-4 h-fit">
+                        <h3 class="text-sm font-outfit font-extrabold text-white uppercase tracking-widest font-mono">Trigger Override Alerts</h3>
+                        <div class="space-y-3">
+                            <button @click="dispatchIncidentSequence('medical', 'Medical distress call Section 112')" class="w-full p-4 bg-neonRed/10 hover:bg-neonRed/20 border border-neonRed/20 hover:border-neonRed text-neonRed rounded-2xl text-left transition-all space-y-1">
+                                <span class="block font-outfit font-bold flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                    Medical Alert
+                                </span>
+                                <span class="text-[10px] text-neutral-400">Deploy closest First-Aid</span>
+                            </button>
+                            <button @click="dispatchIncidentSequence('security', 'Suspicious activity reported Sector 4 Gate A')" class="w-full p-4 bg-neonYellow/10 hover:bg-neonYellow/20 border border-neonYellow/20 hover:border-neonYellow text-neonYellow rounded-2xl text-left transition-all space-y-1">
+                                <span class="block font-outfit font-bold flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                    Security Patrol
+                                </span>
+                                <span class="text-[10px] text-neutral-400">Deploy backup unit</span>
+                            </button>
+                            <button @click="dispatchIncidentSequence('fire', 'Smoke alarm Section 202 corridor')" class="w-full p-4 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 hover:border-orange-500 text-orange-400 rounded-2xl text-left transition-all space-y-1">
+                                <span class="block font-outfit font-bold flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14l-1.121 2.121z"></path></svg>
+                                    Fire Alarm
+                                </span>
+                                <span class="text-[10px] text-neutral-400">Deploy fire marshal</span>
+                            </button>
+                            <button @click="dispatchIncidentSequence('lost_child', 'Lost child reported Gate D')" class="w-full p-4 bg-neonCyan/10 hover:bg-neonCyan/20 border border-neonCyan/20 hover:border-neonCyan text-neonCyan rounded-2xl text-left transition-all space-y-1">
+                                <span class="block font-outfit font-bold flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    Lost Child search
+                                </span>
+                                <span class="text-[10px] text-neutral-400">Lock down checkouts</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Active Incident Detail Panel (Structured Cards Grid) -->
+                    <div class="col-span-1 md:col-span-2 space-y-6">
+                        <div x-show="activeEmergencyDetail" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            <!-- Card 1: Incident Summary -->
+                            <div class="glass-card p-5 rounded-3xl space-y-2 col-span-1 md:col-span-2 border-l-4 border-neonRed">
+                                <div class="flex justify-between items-center">
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-neonRed/20 text-neonRed uppercase" x-text="'Active Dispatch: ' + activeEmergencyDetail.incidentId"></span>
+                                    <button @click="activeEmergencyDetail = null; activeMapRoute = false;" class="text-xs text-neutral-500 hover:text-white">Clear</button>
+                                </div>
+                                <h4 class="font-outfit font-bold text-white text-base capitalize" x-text="activeEmergencyDetail.category + ' Emergency'"></h4>
+                                <p class="text-xs text-neutral-300 font-light leading-relaxed" x-text="activeEmergencyDetail.responsePlan"></p>
+                            </div>
+
+                            <!-- Card 2: Risk Level -->
+                            <div class="glass-card p-5 rounded-3xl space-y-2">
+                                <h5 class="text-xs text-neutral-400 uppercase tracking-wider font-mono">Operations Risk Rating</h5>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl font-black font-outfit text-neonRed" x-text="activeEmergencyDetail.severity"></span>
+                                </div>
+                                <div class="w-full bg-neutral-900 h-1.5 rounded-full overflow-hidden">
+                                    <div class="h-full bg-neonRed animate-pulse" :style="'width: ' + (activeEmergencyDetail.severity === 'CRITICAL' ? '100%' : '80%')"></div>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: ETA Details -->
+                            <div class="glass-card p-5 rounded-3xl space-y-2">
+                                <h5 class="text-xs text-neutral-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-neonRed" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Responder ETA
+                                </h5>
+                                <div class="text-3xl font-black font-outfit text-white" x-text="Math.floor(activeEmergencyDetail.etaSeconds / 60) + 'm ' + (activeEmergencyDetail.etaSeconds % 60) + 's'"></div>
+                                <span class="text-[9px] text-neutral-500 font-mono">Optimized stepless dispatch route</span>
+                            </div>
+
+                            <!-- Card 4: Dispatched Responders -->
+                            <div class="glass-card p-5 rounded-3xl space-y-3 col-span-1 md:col-span-2">
+                                <h5 class="text-xs text-neutral-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-neonGreen" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Dispatched Responders
+                                </h5>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <template x-for="(resp, idx) in activeEmergencyDetail.responders" :key="idx">
+                                        <div class="p-3 bg-white/5 border border-white/5 rounded-2xl flex items-center gap-2">
+                                            <span class="w-2 h-2 rounded-full bg-neonGreen animate-ping"></span>
+                                            <span class="text-xs text-white font-mono" x-text="resp"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Card 5: Interactive Route -->
+                            <div class="glass-card p-5 rounded-3xl space-y-3 col-span-1 md:col-span-2">
+                                <h5 class="text-xs text-neutral-400 uppercase tracking-wider font-mono">Interactive Map Route Nodes</h5>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="(node, idx) in ['Gate Ingress Checkpoint', 'Elevator B Corridor', 'Sector 4 Lobby', 'Section 112 Corridor']" :key="idx">
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-3 py-1.5 bg-white/5 border border-white/5 rounded-xl text-[10px] text-white font-mono" x-text="node"></span>
+                                            <span class="text-neutral-600" x-show="idx < 3">&rarr;</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Card 6: Timeline History -->
+                            <div class="glass-card p-5 rounded-3xl space-y-3">
+                                <h5 class="text-xs text-neutral-400 uppercase tracking-wider font-mono">Response Timeline</h5>
+                                <div class="space-y-2">
+                                    <template x-for="(line, idx) in activeEmergencyDetail.timeline" :key="idx">
+                                        <div class="text-[10px] text-neutral-300 font-mono border-l border-white/10 pl-2 leading-relaxed" x-text="line"></div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Card 7: Recommended PA Announcement -->
+                            <div class="glass-card p-5 rounded-3xl space-y-3">
+                                <h5 class="text-xs text-neutral-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-neonCyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 000-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg> Public Address Broadcasts
+                                </h5>
+                                <p class="text-[10px] text-neutral-300 italic leading-relaxed" x-text="'&quot;' + activeEmergencyDetail.announcementDraft + '&quot;'"></p>
+                            </div>
+
+                        </div>
+
+                        <div x-show="!activeEmergencyDetail" class="glass-card p-12 rounded-3xl text-center text-neutral-500 text-xs flex flex-col items-center justify-center h-full min-h-[300px]">
+                            <svg class="w-8 h-8 text-neutral-600 mb-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            <span>Select an emergency override alert trigger on the left to verify tactical dispatch monitoring.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 6. REPORTS -->
+            <div x-show="currentPage === 'reports'" class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-outfit font-extrabold text-white">AI Executive Operations Reports</h3>
+                    <button @click="window.print()" class="px-5 py-2.5 bg-gradient-to-r from-neonCyan to-green-500 hover:shadow-lg rounded-xl text-obsidian font-extrabold text-xs transition-all font-outfit">
+                        Export PDF Portfolio
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card p-6 rounded-3xl space-y-3">
+                        <h4 class="font-outfit font-extrabold text-sm text-white uppercase tracking-wider font-mono">Ingress Flow Report</h4>
+                        <div class="p-4 bg-white/5 rounded-2xl space-y-2 text-xs font-light text-neutral-300 leading-relaxed">
+                            <p>- Average gate wait times recorded: 12 minutes.</p>
+                            <p>- Gate B East registered peak traffic volume at 12:45.</p>
+                            <p>- Crowd redistribution agents mitigated 15% concourse delay logs.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 rounded-3xl space-y-3">
+                        <h4 class="font-outfit font-extrabold text-sm text-white uppercase tracking-wider font-mono">Sustainability Carbon metrics</h4>
+                        <div class="p-4 bg-white/5 rounded-2xl space-y-2 text-xs font-light text-neutral-300 leading-relaxed">
+                            <p>- Carbon Offsets: <span class="text-neonGreen font-mono font-bold" x-text="telemetry.sustainability.carbon_saved_kg + ' kg CO2'"></span></p>
+                            <p>- HVAC efficiency staging reduced baseline cooling waste by 12%.</p>
+                            <p>- Smart trash collection reduced overflow alerts by 24%.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. SCENARIO SIMULATOR -->
+            <div x-show="currentPage === 'simulator'" class="max-w-3xl mx-auto space-y-6">
+                <div class="glass-card p-6 rounded-3xl space-y-4">
+                    <h3 class="text-sm font-outfit font-extrabold text-white uppercase tracking-widest font-mono">AI Scenario Simulator</h3>
+                    <p class="text-xs text-neutral-400 font-light">Type stadium operational disruptions to simulate Monte Carlo consequence shifts.</p>
+                    
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            x-model="simQuery" 
+                            placeholder="What happens if Gate 5 closes? / What if heavy rain starts?"
+                            class="flex-1 bg-neutral-900 border border-white/10 rounded-xl px-4 text-xs text-white focus:outline-none focus:border-neonCyan"
+                        >
+                        <button @click="triggerSimulatorSequence()" class="px-6 py-3 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-xl text-xs transition-all font-outfit shadow-lg shadow-cyan-500/10">
+                            Simulate
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Simulation progress load checklist -->
+                <div x-show="simLoading" class="glass-card p-6 rounded-3xl space-y-3">
+                    <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono animate-pulse">Running Monte Carlo Congestion Model...</h4>
+                    <div class="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
+                        <div class="h-full bg-neonCyan transition-all duration-300" :style="'width: ' + simProgress + '%'"></div>
+                    </div>
+                </div>
+
+                <!-- Simulation Result Forecast Card -->
+                <div class="glass-card p-6 rounded-3xl space-y-4" x-show="simResult && !simLoading">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-outfit font-extrabold text-sm text-white" x-text="simResult.scenario">Simulation Forecast</h4>
+                        <span class="px-2.5 py-1 bg-neonRed/10 text-neonRed rounded-lg text-[10px] font-mono font-bold border border-neonRed/20" x-text="'Risk Rating: ' + simResult.risk_level"></span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-white/5 rounded-2xl">
+                            <span class="text-[9px] text-neutral-400 block uppercase font-mono">Health Score Impact</span>
+                            <span class="text-xl font-bold font-outfit text-neonRed" x-text="simResult.stadium_health_impact_delta + '%'"></span>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-2xl">
+                            <span class="text-[9px] text-neutral-400 block uppercase font-mono">Prediction Confidence</span>
+                            <span class="text-xl font-bold font-outfit text-neonGreen">99.2%</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <span class="text-xs text-neutral-400 block font-mono">Downstream Forecast Consequences:</span>
+                        <ul class="text-xs space-y-1.5 list-disc list-inside text-neutral-300 font-light">
+                            <template x-for="con in simResult.consequences" :key="con">
+                                <li x-text="con"></li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <div class="border-t border-white/5 pt-4 space-y-2">
+                        <span class="text-xs text-neonCyan font-bold uppercase tracking-wider block font-mono">Recommended Response Plan</span>
+                        <p class="text-xs text-neutral-200 leading-relaxed font-light bg-black/30 p-4 rounded-2xl border border-white/5" x-html="simResult.response_actions"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. SETTINGS -->
+            <div x-show="currentPage === 'settings'" class="max-w-4xl mx-auto space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- Appearance -->
+                    <div class="glass-card p-5 rounded-3xl space-y-4">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Appearance & Theme</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h5 class="text-xs font-bold text-white">High Contrast UI</h5>
+                                    <span class="text-[9px] text-neutral-400">Enhance visual accessibility</span>
+                                </div>
+                                <button @click="highContrast = !highContrast" class="w-10 h-5 rounded-full p-0.5 transition-all" :class="highContrast ? 'bg-neonCyan flex justify-end' : 'bg-neutral-800 flex justify-start'">
+                                    <span class="w-4 h-4 bg-white rounded-full"></span>
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h5 class="text-xs font-bold text-white">Interface Scale</h5>
+                                    <span class="text-[9px] text-neutral-400">Adjust overall viewport zoom</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button @click="fontSize = Math.max(12, fontSize - 1)" class="px-2 py-1 bg-white/5 border border-white/5 rounded-lg text-xs font-mono">-</button>
+                                    <span class="text-xs font-mono text-white" x-text="fontSize + 'px'"></span>
+                                    <button @click="fontSize = Math.min(22, fontSize + 1)" class="px-2 py-1 bg-white/5 border border-white/5 rounded-lg text-xs font-mono">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="glass-card p-5 rounded-3xl space-y-4">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Operations Alerts</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h5 class="text-xs font-bold text-white">Audio Narration Alerts</h5>
+                                    <span class="text-[9px] text-neutral-400">Synthesize audio voice summaries</span>
+                                </div>
+                                <button @click="screenReader = !screenReader" class="w-10 h-5 rounded-full p-0.5 transition-all" :class="screenReader ? 'bg-neonCyan flex justify-end' : 'bg-neutral-800 flex justify-start'">
+                                    <span class="w-4 h-4 bg-white rounded-full"></span>
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h5 class="text-xs font-bold text-white">Desktop Push</h5>
+                                    <span class="text-[9px] text-neutral-400">Receive alerts in background</span>
+                                </div>
+                                <span class="text-[9px] text-neonGreen font-mono uppercase font-bold bg-neonGreen/10 px-2 py-0.5 rounded">Active</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Language -->
+                    <div class="glass-card p-5 rounded-3xl space-y-4">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Platform Language</h4>
+                        <div class="space-y-2">
+                            <h5 class="text-xs font-bold text-white">Select Default Locale</h5>
+                            <select x-model="fanLanguage" class="w-full bg-neutral-900 text-xs text-white p-2.5 rounded-xl border border-white/10 focus:outline-none focus:border-neonCyan">
+                                <option value="en">English (US)</option>
+                                <option value="es">Español (ES)</option>
+                                <option value="fr">Français (FR)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Accessibility Profile -->
+                    <div class="glass-card p-5 rounded-3xl space-y-4">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Accessibility Profiles</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h5 class="text-xs font-bold text-white">Stepless wheelchair route pathing</h5>
+                                    <span class="text-[9px] text-neutral-400">Force elevator-only routes</span>
+                                </div>
+                                <button @click="fanAccessibility = !fanAccessibility" class="w-10 h-5 rounded-full p-0.5 transition-all" :class="fanAccessibility ? 'bg-neonCyan flex justify-end' : 'bg-neutral-800 flex justify-start'">
+                                    <span class="w-4 h-4 bg-white rounded-full"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Hub Configuration -->
+                    <div class="glass-card p-5 rounded-3xl space-y-4 col-span-1 md:col-span-2">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                            AI Swarm Engine
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h5 class="text-xs font-bold text-white">Operational Intelligence Model</h5>
+                                <span class="text-[9px] text-neutral-400 block mb-2">Configure core agent routing LLM</span>
+                                <select class="w-full bg-neutral-900 text-xs text-white p-2.5 rounded-xl border border-white/10 focus:outline-none">
+                                    <option>Operations-Pro-1.0 (Low-Latency)</option>
+                                    <option>Operations-Ultra-2.0 (High-Reasoning)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <h5 class="text-xs font-bold text-white">API Strategy Override</h5>
+                                <span class="text-[9px] text-neutral-400 block mb-2">Toggle local simulator fallback</span>
+                                <div class="p-2.5 bg-white/5 border border-white/5 rounded-xl text-xs font-mono text-neutral-300">
+                                    Fallback Mode: <span class="text-neonCyan">Active (Simulator)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account profile -->
+                    <div class="glass-card p-5 rounded-3xl space-y-4 col-span-1 md:col-span-2">
+                        <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">User Profile & Authority</h4>
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-neonCyan/20 text-neonCyan border border-neonCyan/30 flex items-center justify-center font-bold text-lg">JD</div>
+                            <div class="flex-1 space-y-1">
+                                <h5 class="text-xs font-bold text-white">John Doe</h5>
+                                <p class="text-[9px] text-neutral-400 font-mono">Authority: <span class="text-neonCyan">OPERATIONS_LEAD_ADMIN</span></p>
+                            </div>
+                            <button @click="addNotification('Profile Updated', 'Changes to John Doe logged successfully.', 'success')" class="px-4 py-2 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-xl text-xs font-outfit transition-all">
+                                Save Configuration
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- About specifications -->
+                    <div class="glass-card p-5 rounded-3xl space-y-2 col-span-1 md:col-span-2 bg-white/[0.02] border border-white/5">
+                        <span class="text-[9px] text-neutral-500 uppercase tracking-widest block font-mono">Platform Specifications</span>
+                        <div class="text-[10px] text-neutral-400 font-mono space-y-1">
+                            <p>StadiumMind Platform version: <span class="text-white">v1.0.0-MVP</span></p>
+                            <p>Engine Core: <span class="text-white">FastAPI + Alpine.js Fallback</span></p>
+                            <p>Grounding Engine: <span class="text-white">Mock Resolution Telemetry (Safety Override Enabled)</span></p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripting Engine (Alpine.js state & connected simulation) -->
+    <script>
+        function appState() {
+            return {
+                currentPage: 'landing',
+                pages: [
+                    { id: 'landing', name: 'Home' },
+                    { id: 'dashboard', name: 'Command Center' },
+                    { id: 'copilot', name: 'Fan Copilot' },
+                    { id: 'digital_twin', name: 'Digital Twin' },
+                    { id: 'emergency', name: 'Emergency' },
+                    { id: 'reports', name: 'Reports' },
+                    { id: 'simulator', name: 'Simulator' },
+                    { id: 'settings', name: 'Settings' }
+                ],
+                // Telemetry state defaults
+                telemetry: {
+                    health_score: 95,
+                    risk_score: 12,
+                    crowd: { 
+                        average_load: 65, 
+                        concourse_density: 'Moderate', 
+                        gates: {
+                            "Gate A (North)": { load_percentage: 70, wait_time_mins: 8 },
+                            "Gate B (East)": { load_percentage: 85, wait_time_mins: 14 },
+                            "Gate C (South)": { load_percentage: 45, wait_time_mins: 4 },
+                            "Gate D (West)": { load_percentage: 60, wait_time_mins: 6 }
+                        } 
+                    },
+                    concessions: [
+                        { id: "CON_01", name: "Taco Corner", queue_time_mins: 8, stock_level: 75 },
+                        { id: "CON_02", name: "Classic Burgers", queue_time_mins: 14, stock_level: 90 },
+                        { id: "CON_03", name: "MatchDay Brews", queue_time_mins: 3, stock_level: 50 },
+                        { id: "CON_04", name: "Veggie Express", queue_time_mins: 6, stock_level: 82 }
+                    ],
+                    volunteers: [
+                        { id: "VOL_001", name: "Alex J.", lat: 40.8135 + 0.001, lng: -74.0743 - 0.002, status: "available", languages: ["en", "es"], battery: 94 },
+                        { id: "VOL_002", name: "Maria L.", lat: 40.8135 - 0.002, lng: -74.0743 + 0.001, status: "busy", languages: ["en", "fr"], battery: 85 },
+                        { id: "VOL_003", name: "David K.", lat: 40.8135 + 0.003, lng: -74.0743 - 0.001, status: "available", languages: ["en"], battery: 72 },
+                        { id: "VOL_004", name: "Sarah H.", lat: 40.8135 - 0.001, lng: -74.0743 - 0.003, status: "available", languages: ["en", "de"], battery: 99 },
+                        { id: "VOL_005", name: "John M.", lat: 40.8135 + 0.002, lng: -74.0743 + 0.002, status: "on_break", languages: ["en", "es"], battery: 60 }
+                    ],
+                    medical_teams: [
+                        { id: "MED_001", name: "Medical Unit Alpha", lat: 40.8135 + 0.002, lng: -74.0743 - 0.003, status: "standby" },
+                        { id: "MED_002", name: "Medical Unit Beta", lat: 40.8135 - 0.003, lng: -74.0743 + 0.002, status: "busy" }
+                    ],
+                    security_teams: [
+                        { id: "SEC_001", name: "Security Patrol 1", lat: 40.8135 - 0.001, lng: -74.0743 + 0.003, status: "patrolling" },
+                        { id: "SEC_002", name: "Security Patrol 2", lat: 40.8135 + 0.003, lng: -74.0743 - 0.002, status: "patrolling" },
+                        { id: "SEC_003", name: "Security Patrol 3", lat: 40.8135 - 0.002, lng: -74.0743 - 0.001, status: "standby" }
+                    ],
+                    sustainability: { 
+                        carbon_saved_kg: 840, 
+                        food_waste_saved_kg: 320, 
+                        energy_saved_kw: 1450, 
+                        water_saved_liters: 9400, 
+                        bins: [
+                            { id: "BIN_01", fill_percentage: 65 },
+                            { id: "BIN_02", fill_percentage: 82 },
+                            { id: "BIN_03", fill_percentage: 40 }
+                        ] 
+                    },
+                    transport: { 
+                        parking: { occupied_spaces: 11420, total_spaces: 15000, occupancy_percentage: 76 }, 
+                        shuttles: [
+                            { id: "SHUTTLE_01", status: "active", passengers: 42 },
+                            { id: "SHUTTLE_02", status: "active", passengers: 35 },
+                            { id: "SHUTTLE_03", status: "delayed", passengers: 50 }
+                        ], 
+                        train_arrivals_mins: [5, 15, 25] 
+                    },
+                    incidents: []
+                },
+                notifications: [],
+                wsConnected: false,
+                highContrast: false,
+                fontSize: 16,
+                screenReader: false,
+
+                // Header states
+                profileOpen: false,
+                notificationsOpen: false,
+                mobileNavOpen: false,
+                panelNotifications: [
+                    { id: 1, title: "Gate B Ingress Spike", message: "Concourse traffic bottleneck detected at Gate B East.", type: "warning", time: "2 mins ago", read: false },
+                    { id: 2, title: "Medical dispatch", message: "First aid responders deployed to Section 112.", type: "danger", time: "5 mins ago", read: false },
+                    { id: 3, title: "Transit Queue clearance", message: "Queue wait times reduced near North Food Court.", type: "success", time: "10 mins ago", read: true },
+                    { id: 4, title: "Parking Lot C capacity", message: "Parking Lot C spaces occupancy at 96%.", type: "warning", time: "15 mins ago", read: true },
+                    { id: 5, title: "Shuttle bus update", message: "Shuttle Route 4 is reporting minor 5m delays.", type: "info", time: "25 mins ago", read: true }
+                ],
+
+                // Copilot variables
+                userMessage: '',
+                fanLanguage: 'en',
+                fanAccessibility: false,
+                chatLoading: false,
+                lastCopilotResult: null,
+                agentLoaderSteps: [
+                    { name: 'Initializing Core Orchestrator...', done: false },
+                    { name: 'Retrieving Crowd density load...', done: false },
+                    { name: 'Querying Navigation routing nodes...', done: false },
+                    { name: 'Compiling structured map route...', done: false }
+                ],
+
+                // Digital Twin variables
+                twinFilters: { volunteers: true, medical: true, security: true, incidents: true },
+                selectedTwinElement: null,
+                activeMapRoute: false,
+                activeMapRoutePath: 'M 350,225 L 380,240 L 400,250 L 450,260 L 500,270',
+
+                // Simulator variables
+                simQuery: '',
+                simLoading: false,
+                simProgress: 0,
+                simResult: null,
+
+                // Emergency active state details
+                activeEmergencyDetail: null,
+
+                // Dynamic attendee scan counter
+                totalAttendeeScans: 62410,
+
+                // Briefing
+                liveBriefingText: 'Stadium Operating System online. Ingress checkpoints reporting nominal wait lines.',
+
+                initApp() {
+                    this.initParticles();
+                    this.initWebSocket();
+                    
+                    // Increment attendee counts slowly to simulate real ingress scans
+                    setInterval(() => {
+                        this.totalAttendeeScans += Math.floor(Math.random() * 5);
+                    }, 4000);
+
+                    // Telemetry Mock simulator interval (Updates every 5 seconds)
+                    setInterval(() => {
+                        // Drift volunteers slightly to create moving markers
+                        this.telemetry.volunteers.forEach(v => {
+                            v.lat += (Math.random() - 0.5) * 0.00015;
+                            v.lng += (Math.random() - 0.5) * 0.00015;
+                        });
+                        this.telemetry.medical_teams.forEach(m => {
+                            m.lat += (Math.random() - 0.5) * 0.0001;
+                            m.lng += (Math.random() - 0.5) * 0.0001;
+                        });
+                        this.telemetry.security_teams.forEach(s => {
+                            s.lat += (Math.random() - 0.5) * 0.0001;
+                            s.lng += (Math.random() - 0.5) * 0.0001;
+                        });
+
+                        // Adjust gate loads slightly
+                        Object.keys(this.telemetry.crowd.gates).forEach(name => {
+                            const delta = Math.floor(Math.random() * 5) - 2;
+                            this.telemetry.crowd.gates[name].load_percentage = Math.max(30, Math.min(99, this.telemetry.crowd.gates[name].load_percentage + delta));
+                            this.telemetry.crowd.gates[name].wait_time_mins = Math.max(2, Math.min(30, Math.round(this.telemetry.crowd.gates[name].load_percentage * 0.15)));
+                        });
+
+                        // Concessions wait time fluctuations
+                        this.telemetry.concessions.forEach(c => {
+                            c.queue_time_mins = Math.max(1, Math.min(30, c.queue_time_mins + (Math.random() > 0.5 ? 1 : -1)));
+                        });
+
+                        // Health score drift
+                        if (Math.random() > 0.6) {
+                            const hChange = Math.random() > 0.5 ? 1 : -1;
+                            this.telemetry.health_score = Math.max(80, Math.min(100, this.telemetry.health_score + hChange));
+                        }
+
+                        // Sustainability accumulators
+                        this.telemetry.sustainability.carbon_saved_kg += 1;
+                        this.telemetry.sustainability.energy_saved_kw += 2;
+
+                        // Parking spots drift
+                        this.telemetry.transport.parking.occupied_spaces = Math.max(10000, Math.min(14500, this.telemetry.transport.parking.occupied_spaces + Math.floor(Math.random() * 20) - 10));
+                        this.telemetry.transport.parking.occupancy_percentage = Math.round((this.telemetry.transport.parking.occupied_spaces / this.telemetry.transport.parking.total_spaces) * 100);
+
+                    }, 5000);
+                },
+
+                initWebSocket() {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/ws/telemetry`;
+                    
+                    const socket = new WebSocket(wsUrl);
+                    socket.onopen = () => {
+                        this.wsConnected = true;
+                        this.addNotification('System Link established', 'Secure WebSocket connection to StadiumMind OS Core compiled.', 'info');
+                    };
+                    socket.onmessage = (event) => {
+                        this.telemetry = JSON.parse(event.data);
+                        this.compileTelemetryBriefing();
+                    };
+                    socket.onclose = () => {
+                        this.wsConnected = false;
+                        setTimeout(() => this.initWebSocket(), 5000);
+                    };
+                },
+
+                compileTelemetryBriefing() {
+                    // Rule based summaries updated live
+                    const incs = this.telemetry.incidents.length;
+                    if (incs > 0) {
+                        this.liveBriefingText = `CRITICAL: ${incs} active emergency dispatches logged. Accessibility agents enforcing stepless routes. Emergency responder routes updated live on Digital Twin maps.`;
+                    } else {
+                        this.liveBriefingText = `Stadium Health Index at ${this.telemetry.health_score}%. Concession checkout wait times: Burger line is 12m, Taco line is 8m. Smart bins reporting 45% occupancy levels.`;
+                    }
+                },
+
+                addNotification(title, message, type = 'info') {
+                    const id = Date.now();
+                    this.notifications.push({ id, title, message, type });
+                    // Speech voice assist logic
+                    if (this.screenReader && 'speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(`${title}. ${message}`);
+                        window.speechSynthesis.speak(utterance);
+                    }
+                    setTimeout(() => this.dismissNotification(id), 6000);
+                },
+
+                dismissNotification(id) {
+                    this.notifications = this.notifications.filter(n => n.id !== id);
+                },
+
+                // Preset Fan Copilot queries
+                async triggerPresetCopilotQuery(query) {
+                    if (query === 'OCR_where_am_i') {
+                        await this.runAgentChatLoadingSequence("OCR visual sign parsing...");
+                        this.lastCopilotResult = {
+                            navigation: "Identified Gate 3 Entrance Concourse adjacent to escalator.",
+                            eta: "5 mins to seat",
+                            crowdLevel: "Moderate",
+                            suggestedRoute: ["Gate 3 Escalator B", "Level 2 Concourse Area", "Sector 4 Corridor", "Section 112A Ingress"],
+                            food: "Taco Corner nearby is reporting a low wait queue (under 6m).",
+                            accessibility: "Elevator access is fully active at Aisle B.",
+                            warnings: ["Section 112 ingress queue is building up."],
+                            sources: "Vision OCR Sign Recognition + Operations Database"
+                        };
+                        this.activeMapRoute = true;
+                        this.addNotification('Navigation Sync', 'Route map overlay synchronized to Digital Twin.', 'info');
+                        return;
+                    }
+
+                    this.userMessage = query;
+                    await this.sendChatMessage(query);
+                },
+
+                async sendChatMessage(presetQuery) {
+                    const queryToSubmit = presetQuery || this.userMessage;
+                    if (!queryToSubmit.trim()) return;
+                    this.userMessage = '';
+                    
+                    await this.runAgentChatLoadingSequence();
+
+                    const isFood = queryToSubmit.toLowerCase().includes("food") || queryToSubmit.toLowerCase().includes("concession") || queryToSubmit.toLowerCase().includes("line");
+                    const isWheelchair = queryToSubmit.toLowerCase().includes("wheelchair") || queryToSubmit.toLowerCase().includes("accessibility");
+
+                    this.lastCopilotResult = {
+                        navigation: isWheelchair 
+                            ? "Access route set via Elevator B directly to Section 112 Disabled Seating Corridor."
+                            : "Standard seat route via Escalator 4 East to Section 112, Row 14, Seat 5.",
+                        eta: isWheelchair ? "6 mins" : "4 mins",
+                        crowdLevel: "Moderate",
+                        suggestedRoute: isWheelchair 
+                            ? ["Gate 3 South Entrance", "Elevator B Lobby", "Level 2 Concourse West", "Disabled Aisle access"]
+                            : ["Gate 3 Entrance", "Escalator 4 East", "Concourse Section 100", "Row 14, Seat 5"],
+                        food: isFood 
+                            ? "🍔 Concession Recommendation: Taco Corner (queue: 6m wait, stock: 82% capacity)."
+                            : "MatchDay Brews and Classic Burgers are the closest options with low wait times.",
+                        accessibility: isWheelchair 
+                            ? "♿ Step-free wheelchair pathing is forced. Elevator B is designated active path."
+                            : "Standard stairs routing enabled. Ramps available at all gate entry corridors.",
+                        warnings: ["Lounges near Sec 100 concourse are highly crowded. Maintain safe movement paths."],
+                        sources: "Stadium Database + Crowd Density Cameras"
+                    };
+
+                    this.addNotification('Operations Search Compile', 'Structured parameters rendered below.', 'info');
+                },
+
+                async runAgentChatLoadingSequence(customText = null) {
+                    this.chatLoading = true;
+                    this.agentLoaderSteps.forEach(s => s.done = false);
+                    if (customText) this.agentLoaderSteps[1].name = customText;
+
+                    for (let i = 0; i < this.agentLoaderSteps.length; i++) {
+                        await new Promise(r => setTimeout(r, 600));
+                        this.agentLoaderSteps[i].done = true;
+                    }
+                    await new Promise(r => setTimeout(r, 200));
+                    this.chatLoading = false;
+                },
+
+                // Simulation Trigger Sequence
+                triggerSimulatorSequence() {
+                    if (!this.simQuery.trim()) return;
+                    this.simLoading = true;
+                    this.simProgress = 10;
+                    
+                    let interval = setInterval(() => {
+                        this.simProgress += 20;
+                        if (this.simProgress >= 100) {
+                            clearInterval(interval);
+                            this.fetchSimulatorResult();
+                        }
+                    }, 400);
+                },
+
+                async fetchSimulatorResult() {
+                    try {
+                        const res = await fetch('/api/v1/simulator', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ scenario: this.simQuery })
+                        });
+                        this.simResult = await res.json();
+                        this.addNotification('Simulation Completed', `Forecasting parameters processed for scenario: "${this.simQuery}"`, 'warning');
+                    } catch (e) {
+                        alert("API error during simulation model.");
+                    } finally {
+                        this.simLoading = false;
+                    }
+                },
+
+                // Mock emergency generation details matching services/emergencyMock.ts
+                async dispatchIncidentSequence(category, desc) {
+                    try {
+                        // Generate mock data locally in static HTML
+                        let details = {};
+                        if (category === "medical") {
+                            details = {
+                                incidentId: "INC-MED-881",
+                                category: "medical",
+                                severity: "CRITICAL",
+                                etaSeconds: 145,
+                                responsePlan: "Cardiac alert logged at Section 112 corridor. First aid dispatched with defibrillator kit.",
+                                responders: ["Medical Unit Alpha (ETA 2m)", "Volunteer Leader Alex J."],
+                                timeline: ["18:32:00 Cardiac event logged", "18:32:15 Medical Unit Alpha dispatched", "18:32:30 Route optimized via stepless ramps"],
+                                announcementDraft: "First Aid responders are moving through Sector 4. Please clear corridors."
+                            };
+                        } else if (category === "security") {
+                            details = {
+                                incidentId: "INC-SEC-109",
+                                category: "security",
+                                severity: "HIGH",
+                                etaSeconds: 190,
+                                responsePlan: "Suspicious unattended package reported Gate A lobby. Securing quadrant.",
+                                responders: ["Security Patrol 2 (ETA 3m)", "Field Lead David K."],
+                                timeline: ["18:32:00 Ticket scan flag triggered", "18:32:10 Dispatch verified by lead monitor", "18:32:45 Quadrant A corner cordoned off"],
+                                announcementDraft: "Security checks are active near Gate A. Please proceed to adjacent entryways."
+                            };
+                        } else if (category === "fire") {
+                            details = {
+                                incidentId: "INC-FIR-304",
+                                category: "fire",
+                                severity: "CRITICAL",
+                                etaSeconds: 95,
+                                responsePlan: "Heat sensor alert Section 202. Deploying local chemical fire marshall team.",
+                                responders: ["Fire Patrol Unit 1 (ETA 1m 35s)", "Staff Marshall Sarah H."],
+                                timeline: ["18:32:00 Corridor 202 temp spike", "18:32:15 Sprinklers set to standby", "18:32:30 Local marshal deployed"],
+                                announcementDraft: "Nominal heat flare checked in Section 202. Situation is fully contained."
+                            };
+                        } else {
+                            details = {
+                                incidentId: "INC-LST-506",
+                                category: "lost_child",
+                                severity: "MODERATE",
+                                etaSeconds: 300,
+                                responsePlan: "Parent reporting missing child near concession corner. Syncing with camera OCR.",
+                                responders: ["Volunteer Maria L.", "Sector Supervisor John M."],
+                                timeline: ["18:32:00 Description registered: red jersey", "18:32:20 All checkouts notified", "18:32:45 Camera feed Sector B matches child"],
+                                announcementDraft: "Lost child services active at Sector B main desk. Thank you for your assistance."
+                            };
+                        }
+
+                        this.activeEmergencyDetail = details;
+
+                        // Insert into incidents list
+                        const newInc = {
+                            id: details.incidentId,
+                            category: details.category,
+                            description: details.responsePlan,
+                            location: "Section 112 Ingress Corridor B",
+                            severity: details.severity,
+                            timestamp: Date.now()
+                        };
+
+                        this.telemetry.incidents = [newInc, ...this.telemetry.incidents.filter(i => i.category !== category)];
+
+                        this.addNotification(`DISPATCH ACTIVE: ${details.incidentId}`, `Category ${category.toUpperCase()} logged. Responders deployed via exit lanes.`, 'danger');
+                        this.activeMapRoute = true; 
+                        this.currentPage = 'emergency'; 
+                        
+                    } catch (e) {
+                        console.error("Incident trigger mock failure", e);
+                    }
+                },
+
+                async clearIncident(incidentId) {
+                    try {
+                        await fetch(`/api/v1/emergency/resolve/${incidentId}`, { method: 'POST' });
+                        this.activeMapRoute = false;
+                        this.addNotification('Incident Resolved', `Dispatch ID ${incidentId} cleared. Map nodes set to standard configuration.`, 'success');
+                    } catch (e) {
+                        alert("Error clearing incident.");
+                    }
+                },
+
+                // Connected Demo Preset: Ingress Spill
+                simulateConcourseSpill() {
+                    this.addNotification('INGRESS SPILL ALERT', 'Heavy traffic bottleneck detected at Gate B East. Rerouting incoming transport buses to Gate C.', 'warning');
+                },
+
+                // Highlight active path line
+                highlightActiveRouteDemo() {
+                    this.activeMapRoute = !this.activeMapRoute;
+                },
+
+                // Particles Background Engine
+                initParticles() {
+                    const canvas = document.getElementById('particles-canvas');
+                    if (!canvas) return;
+                    const ctx = canvas.getContext('2d');
+                    
+                    let particles = [];
+                    const count = 40;
+                    
+                    function resize() {
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerHeight;
+                    }
+                    window.addEventListener('resize', resize);
+                    resize();
+                    
+                    for(let i=0; i<count; i++) {
+                        particles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            r: Math.random() * 2.5 + 0.5,
+                            vx: (Math.random() - 0.5) * 0.4,
+                            vy: (Math.random() - 0.5) * 0.4,
+                            alpha: Math.random() * 0.5 + 0.2
+                        });
+                    }
+                    
+                    function draw() {
+                        ctx.clearRect(0,0,canvas.width,canvas.height);
+                        particles.forEach(p => {
+                            p.x += p.vx;
+                            p.y += p.vy;
+                            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                            
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                            ctx.fillStyle = `rgba(0, 229, 255, ${p.alpha})`;
+                            ctx.fill();
+                        });
+                        requestAnimationFrame(draw);
+                    }
+                    draw();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
