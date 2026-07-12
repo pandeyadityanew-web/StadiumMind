@@ -1,101 +1,169 @@
-# StadiumMind AI: The GenAI Operating System for FIFA World Cup 2026
+# StadiumMind
 
-StadiumMind AI is an advanced, production-quality Multi-Agent Operating System designed to optimize stadium operations, volunteer tasks, medical/security dispatches, and fan navigation at the FIFA World Cup 2026.
+## Overview
+
+StadiumMind is an intelligent stadium operations platform designed to improve decision-making for venue operators, security personnel, volunteers, medical teams, and visitors. The platform combines real-time operational data with AI-powered insights to support crowd management, emergency response, navigation, accessibility, and resource optimization.
+
+The project demonstrates how artificial intelligence can enhance operational efficiency while improving the overall stadium experience.
 
 ---
 
-## ⚡ Zero-Configuration Quick Start (FastAPI Serving Mode)
-Because local machines might not have Node.js/npm installed by default, the FastAPI backend comes pre-configured with a **served high-fidelity fallback UI** directly at port `8000`. You can launch and test all features instantly using only Python!
+## Features
 
-### Step 1: Install Python Dependencies
-Ensure Python 3.11+ is installed. Navigate to the `backend` folder and install requirements:
+- Real-time operations dashboard
+- AI-powered operational insights
+- Digital Twin visualization
+- Predictive crowd monitoring
+- Emergency response coordination
+- Fan navigation assistance
+- Accessibility support
+- Scenario simulation and decision support
+- Operational reporting
+- Responsive user interface for desktop and mobile devices
+
+---
+
+## Technology Stack
+
+### Frontend
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+
+### Backend
+
+- FastAPI
+- Python
+
+### AI
+
+- Gemini API (optional)
+- Multi-Agent orchestration
+- Rule-based fallback engine
+
+### Infrastructure
+
+- Docker
+- WebSockets
+
+---
+
+## Project Structure
+
+```text
+StadiumMind/
+│
+├── backend/
+│   ├── agents/
+│   ├── database/
+│   ├── static/
+│   ├── main.py
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── next.config.js
+│
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
+
+---
+
+## Installation
+
+### Clone the repository
+
+```bash
+git clone https://github.com/pandeyadityanew-web/StadiumMind.git
+cd StadiumMind
+```
+
+### Backend
+
 ```bash
 cd backend
 pip install -r requirements.txt
-```
-
-### Step 2: Set Environment Variables (Optional)
-To use the live Gemini LLM agent analysis, create a `.env` file or export your key:
-*   On Windows (PowerShell):
-    ```powershell
-    $env:GEMINI_API_KEY="your_actual_key_here"
-    ```
-*   On Linux/macOS:
-    ```bash
-    export GEMINI_API_KEY="your_actual_key_here"
-    ```
-*(If no API key is specified, StadiumMind AI falls back to its built-in high-fidelity rule-based Agent Compiler so you can run the entire demo offline or keyless).*
-
-### Step 3: Run the Backend Server
-Start the Uvicorn FastAPI server:
-```bash
 python main.py
 ```
-Open your browser and navigate to:
-👉 **[http://localhost:8000/](http://localhost:8000/)**
 
-The system will connect over local WebSockets, feed telemetry updates every 5 seconds, and support all screens:
-*   **Landing Page & Features**
-*   **Command Center Panel:** Live alerts, Health score gauge, dynamic wait time graphs.
-*   **Fan Copilot Chat:** With language routing, accessibility wheelchair pathing, and visual OCR image matching mock.
-*   **Live Digital Twin Map:** Pulse-animating dots mapping volunteer GPS coordinates, medical crews, and security teams.
-*   **Emergency Dispatch System:** Real-time action plan generation, dispatch paths, and public broadcast drafts.
-*   **Scenario Simulator (WOW Feature):** Input "What if Gate 5 closes due to a power outage?" to trigger Monte Carlo forecast consequences.
+### Frontend
 
----
+Open a new terminal.
 
-## 🚀 Running the Production Next.js App (Requires Node.js)
-If you have Node.js and npm installed, you can launch the React/Next.js frontend independently:
-
-1.  Make sure the FastAPI backend is running at `http://localhost:8000`.
-2.  Navigate to the `frontend` folder:
-    ```bash
-    cd ../frontend
-    npm install --legacy-peer-deps
-    npm run dev
-    ```
-3.  Navigate to:
-    👉 **[http://localhost:3000/](http://localhost:3000/)**
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
-## 🐳 Docker Container Orchestration
-To deploy the entire stack using Docker:
+## Environment Variables
+
+Create a `.env` file inside the `backend` directory if AI-powered responses are required.
+
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+
+If no API key is provided, the application runs using its built-in demo logic.
+
+---
+
+## Running with Docker
+
 ```bash
 docker-compose up --build
 ```
-*   FastAPI Backend URL: `http://localhost:8000`
-*   Next.js Frontend URL: `http://localhost:3000`
 
 ---
 
-## 📁 Repository Directory Architecture
-```text
-stadiummind-ai/
-├── docker-compose.yml       # Docker compose multi-service orchestration
-├── README.md                # Installation and walkthrough guide
-├── .env.example             # Template for API keys
-│
-├── backend/                 # FastAPI Python backend engine
-│   ├── Dockerfile
-│   ├── main.py              # Main router & WebSocket broadcaster
-│   ├── requirements.txt     # Python libraries list
-│   ├── agents/              # Multi-Agent LangGraph-like swarm
-│   │   └── orchestrator.js
-│   ├── database/            # Telemetry state database mock
-│   │   └── telemetry_db.py
-│   └── static/              # Served high-fidelity dashboard (HTML/AlpineJS)
-│       └── index.html
-│
-└── frontend/                # Production Next.js React frontend
-    ├── Dockerfile
-    ├── package.json
-    ├── tailwind.config.js
-    └── src/
-        └── app/
-            ├── globals.css
-            ├── layout.tsx   # Fonts & metadata wrapper
-            ├── page.tsx     # Modern Landing Page
-            └── dashboard/
-                └── page.tsx # Full React Telemetry dashboard
-```
+## How It Works
+
+StadiumMind continuously processes operational information and presents actionable recommendations through a unified dashboard.
+
+The platform includes modules for:
+
+- Crowd monitoring
+- Emergency coordination
+- Fan assistance
+- Accessibility
+- Predictive analytics
+- Scenario simulation
+- Operational reporting
+
+Each module contributes to a single operational view, allowing users to make informed decisions in real time.
+
+---
+
+## Assumptions
+
+- Operational telemetry is simulated for demonstration purposes.
+- AI responses use mock data when external services are unavailable.
+- Indoor mapping and crowd information represent a demonstration environment.
+- Emergency workflows are designed for simulation purposes.
+
+---
+
+## Future Enhancements
+
+- Integration with IoT sensors
+- Live CCTV analytics
+- Indoor positioning systems
+- Public transportation integration
+- Advanced predictive analytics
+- Native mobile application
+- Cloud deployment
+
+---
+
+## License
+
+This project was developed for educational and hackathon purposes.
