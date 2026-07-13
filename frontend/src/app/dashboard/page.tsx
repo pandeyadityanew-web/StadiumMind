@@ -35,7 +35,9 @@ import {
   Volume1,
   Cpu,
   LogOut,
-  Info
+  Info,
+  Search,
+  Accessibility
 } from "lucide-react";
 
 import { getEmergencyMockData, EmergencyResponse } from "@/services/emergencyMock";
@@ -984,21 +986,25 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setFanAccessibility(!fanAccessibility)} 
-                    className={`px-3 py-1.5 rounded-xl text-[9px] font-extrabold uppercase border transition-all duration-200 ${
+                    className={`px-3 py-1.5 rounded-xl text-[9px] font-extrabold uppercase border transition-all duration-200 flex items-center gap-1.5 ${
                       fanAccessibility ? "bg-neonCyan/20 text-neonCyan border-neonCyan" : "border-white/10 text-neutral-400"
                     }`}
                   >
-                    Wheelchair path
+                    <Accessibility className="w-3.5 h-3.5" /> Wheelchair path
                   </button>
-                  <select 
-                    value={fanLanguage}
-                    onChange={(e) => setFanLanguage(e.target.value)}
-                    className="bg-neutral-900 text-white text-[10px] px-2.5 py-1.5 rounded-xl border border-white/10 focus:outline-none"
-                  >
-                    <option value="en">English</option>
-                    <option value="es">Español</option>
-                    <option value="fr">Français</option>
-                  </select>
+                  
+                  <div className="flex items-center gap-1.5 bg-neutral-900 border border-white/10 rounded-xl px-2.5 py-1">
+                    <Globe className="w-3.5 h-3.5 text-neutral-400" />
+                    <select 
+                      value={fanLanguage}
+                      onChange={(e) => setFanLanguage(e.target.value)}
+                      className="bg-transparent text-white text-[10px] py-0.5 focus:outline-none border-none cursor-pointer"
+                    >
+                      <option value="en" className="bg-neutral-950">English</option>
+                      <option value="es" className="bg-neutral-950">Español</option>
+                      <option value="fr" className="bg-neutral-950">Français</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1006,7 +1012,7 @@ export default function Dashboard() {
               <div className="flex gap-2">
                 <button 
                   onClick={() => triggerPresetCopilotQuery("OCR_where_am_i")}
-                  className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-neonCyan transition-all flex items-center justify-center"
+                  className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-neonCyan transition-all flex items-center justify-center active:scale-95 duration-200"
                   title="Scan Location Photo"
                 >
                   <Camera className="w-5 h-5" />
@@ -1021,23 +1027,28 @@ export default function Dashboard() {
                 />
                 <button 
                   onClick={() => sendChatMessage()} 
-                  className="px-6 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-2xl text-xs transition-all font-outfit"
+                  className="px-6 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-2xl text-xs transition-all font-outfit flex items-center gap-1.5 active:scale-95 duration-200"
                 >
-                  Execute Search
+                  <Search className="w-3.5 h-3.5" /> Execute Search
                 </button>
               </div>
 
-              {/* Quick Search Preset Tags */}
-              <div className="flex gap-2 overflow-x-auto pt-2 border-t border-white/5">
-                <button onClick={() => triggerPresetCopilotQuery("Closest concession with no line?")} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
-                  🍔 concession wait times
-                </button>
-                <button onClick={() => triggerPresetCopilotQuery("Seat Sec 112A wheelchair route?")} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
-                  ♿ Wheelchair stepless route
-                </button>
-                <button onClick={() => triggerPresetCopilotQuery("OCR_where_am_i")} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
-                  📷 OCR Camera guide
-                </button>
+              {/* Quick Search Preset Tags Header & Chips */}
+              <div className="pt-2 border-t border-white/5 space-y-2">
+                <div className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-neonCyan animate-pulse" /> Quick Search Presets
+                </div>
+                <div className="flex gap-2 overflow-x-auto">
+                  <button onClick={() => triggerPresetCopilotQuery("Closest concession with no line?")} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 hover:border-white/20 active:scale-95 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all duration-200 shrink-0">
+                    🍔 concession wait times
+                  </button>
+                  <button onClick={() => triggerPresetCopilotQuery("Seat Sec 112A wheelchair route?")} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 hover:border-white/20 active:scale-95 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all duration-200 shrink-0">
+                    ♿ Wheelchair stepless route
+                  </button>
+                  <button onClick={() => triggerPresetCopilotQuery("OCR_where_am_i")} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 hover:border-white/20 active:scale-95 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all duration-200 shrink-0">
+                    📷 OCR Camera guide
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1147,8 +1158,12 @@ export default function Dashboard() {
 
               </div>
             ) : (
-              <div className="glass-card p-12 rounded-3xl text-center text-neutral-500 text-xs">
-                Enter your seat number or scan a visual camera sign above to generate structured operations details.
+              <div className="glass-card p-12 rounded-3xl text-center flex flex-col items-center justify-center text-neutral-500 text-xs min-h-[260px] space-y-3">
+                <Search className="w-8 h-8 text-neutral-600 animate-pulse" />
+                <h4 className="font-outfit font-bold text-white text-sm">No search performed yet</h4>
+                <p className="max-w-md mx-auto text-neutral-400 font-light leading-relaxed">
+                  Search for a seat, gate, restroom, concession stand, or accessibility route to view AI-powered guidance.
+                </p>
               </div>
             )}
 

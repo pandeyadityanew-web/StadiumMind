@@ -486,16 +486,20 @@
                         <div class="flex items-center gap-3">
                             <button 
                                 @click="fanAccessibility = !fanAccessibility" 
-                                class="px-3 py-1.5 rounded-xl text-[9px] font-extrabold uppercase border transition-all duration-200"
+                                class="px-3 py-1.5 rounded-xl text-[9px] font-extrabold uppercase border transition-all duration-200 flex items-center gap-1.5"
                                 :class="fanAccessibility ? 'bg-neonCyan/20 text-neonCyan border-neonCyan' : 'border-white/10 text-neutral-400'"
                             >
-                                Wheelchair path
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg> Wheelchair path
                             </button>
-                            <select x-model="fanLanguage" class="bg-neutral-900 text-white text-[10px] px-2.5 py-1.5 rounded-xl border border-white/10 focus:outline-none">
-                                <option value="en">English</option>
-                                <option value="es">Español</option>
-                                <option value="fr">Français</option>
-                            </select>
+                            
+                            <div class="flex items-center gap-1.5 bg-neutral-900 border border-white/10 rounded-xl px-2.5 py-1">
+                                <svg class="w-3.5 h-3.5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                                <select x-model="fanLanguage" class="bg-transparent text-white text-[10px] py-0.5 focus:outline-none border-none cursor-pointer">
+                                    <option value="en" class="bg-neutral-950">English</option>
+                                    <option value="es" class="bg-neutral-950">Español</option>
+                                    <option value="fr" class="bg-neutral-950">Français</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -503,7 +507,7 @@
                     <div class="flex gap-2">
                         <button 
                             @click="triggerPresetCopilotQuery('OCR_where_am_i')"
-                            class="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-neonCyan transition-all flex items-center justify-center"
+                            class="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-neonCyan transition-all flex items-center justify-center active:scale-95 duration-200"
                             title="Scan Location Photo"
                         >
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -517,23 +521,28 @@
                         />
                         <button 
                             @click="sendChatMessage()" 
-                            class="px-6 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-2xl text-xs transition-all font-outfit"
+                            class="px-6 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-2xl text-xs transition-all font-outfit flex items-center gap-1.5 active:scale-95 duration-200"
                         >
-                            Execute Search
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> Execute Search
                         </button>
                     </div>
 
-                    {/* Quick Search Preset Tags */}
-                    <div class="flex gap-2 overflow-x-auto pt-2 border-t border-white/5">
-                        <button @click="triggerPresetCopilotQuery('Closest concession with no line?')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
-                            🍔 concession wait times
-                        </button>
-                        <button @click="triggerPresetCopilotQuery('Seat Sec 112A wheelchair route?')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
-                            ♿ Wheelchair stepless route
-                        </button>
-                        <button @click="triggerPresetCopilotQuery('OCR_where_am_i')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all shrink-0">
-                            📷 OCR Camera guide
-                        </button>
+                    <!-- Quick Search Preset Tags Header & Chips -->
+                    <div class="pt-2 border-t border-white/5 space-y-2">
+                        <div class="text-[10px] text-neutral-400 font-mono uppercase tracking-wider flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-neonCyan animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Quick Search Presets
+                        </div>
+                        <div class="flex gap-2 overflow-x-auto">
+                            <button @click="triggerPresetCopilotQuery('Closest concession with no line?')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 hover:border-white/20 active:scale-95 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all duration-200 shrink-0">
+                                🍔 concession wait times
+                            </button>
+                            <button @click="triggerPresetCopilotQuery('Seat Sec 112A wheelchair route?')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 hover:border-white/20 active:scale-95 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all duration-200 shrink-0">
+                                ♿ Wheelchair stepless route
+                            </button>
+                            <button @click="triggerPresetCopilotQuery('OCR_where_am_i')" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 hover:border-white/20 active:scale-95 border border-white/5 rounded-xl text-[10px] text-neutral-300 transition-all duration-200 shrink-0">
+                                📷 OCR Camera guide
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -624,8 +633,12 @@
 
                 </div>
 
-                <div x-show="!lastCopilotResult" class="glass-card p-12 rounded-3xl text-center text-neutral-500 text-xs">
-                    Enter your seat number or scan a visual camera sign above to generate structured operations details.
+                <div x-show="!lastCopilotResult" class="glass-card p-12 rounded-3xl text-center flex flex-col items-center justify-center text-neutral-500 text-xs min-h-[260px] space-y-3">
+                    <svg class="w-8 h-8 text-neutral-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <h4 class="font-outfit font-bold text-white text-sm">No search performed yet</h4>
+                    <p class="max-w-md mx-auto text-neutral-400 font-light leading-relaxed">
+                        Search for a seat, gate, restroom, concession stand, or accessibility route to view AI-powered guidance.
+                    </p>
                 </div>
 
             </div>

@@ -143,12 +143,11 @@ Each module contributes to a single operational view, allowing users to make inf
 
 ---
 
-## Assumptions
+## Assumptions & Known Limitations
 
-- Operational telemetry is simulated for demonstration purposes.
-- AI responses use mock data when external services are unavailable.
-- Indoor mapping and crowd information represent a demonstration environment.
-- Emergency workflows are designed for simulation purposes.
+- **Simulated Telemetry**: All live metrics (e.g. crowd ingress load, concessions wait times, carbon saved index, and responder GPS updates) are simulated locally for demo consistency.
+- **Rule-Based Fallback**: If `GEMINI_API_KEY` is not provided in environment variables, the system executes locally using high-fidelity mock grounding.
+- **Simulation Scope**: Indoor navigation charts, digital twin path overlays, and scenario forecasting models represent static sandbox datasets.
 
 ---
 
