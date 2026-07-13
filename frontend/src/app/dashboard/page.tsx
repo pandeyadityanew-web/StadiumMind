@@ -911,7 +911,7 @@ export default function Dashboard() {
               <div className="glass-card p-6 rounded-3xl space-y-4 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Stadium Health Index</h4>
+                    <h4 className="text-xs text-neutral-400 uppercase tracking-widest font-mono">Stadium Health Index</h4>
                     <span className="text-xs text-neutral-500">Telemetry safety ratio</span>
                   </div>
                   <span className="px-2 py-0.5 rounded text-[10px] bg-neonGreen/10 text-neonGreen font-mono font-bold">STABLE</span>
@@ -934,7 +934,7 @@ export default function Dashboard() {
               <div className="glass-card p-6 rounded-3xl space-y-4 col-span-1 md:col-span-2">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h4 class="text-xs text-neutral-400 uppercase tracking-widest font-mono">Gate Ingress load / Wait Times</h4>
+                    <h4 className="text-xs text-neutral-400 uppercase tracking-widest font-mono">Gate Ingress load / Wait Times</h4>
                     <span className="text-xs text-neutral-500">Live scanning checkpoints</span>
                   </div>
                   <span className="text-[10px] text-neutral-400 font-mono">Total Scans: {totalAttendeeScans}</span>
@@ -954,8 +954,8 @@ export default function Dashboard() {
                           <div className={`h-full transition-all duration-500 ${gData.load_percentage > 85 ? "bg-neonRed" : "bg-neonCyan"}`} style={{ width: `${gData.load_percentage}%` }}></div>
                         </div>
                         <div className="flex justify-between text-[10px] text-neutral-500">
-                          <span>Wait: <span class="font-bold text-white">{gData.wait_time_mins}m</span></span>
-                          <span>Throughput: <span class="font-bold text-white">{Math.round(gData.load_percentage * 1.5)}/m</span></span>
+                          <span>Wait: <span className="font-bold text-white">{gData.wait_time_mins}m</span></span>
+                          <span>Throughput: <span className="font-bold text-white">{Math.round(gData.load_percentage * 1.5)}/m</span></span>
                         </div>
                       </div>
                     );
@@ -1421,7 +1421,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="glass-card p-6 rounded-3xl space-y-3">
-              <h4 class="font-outfit font-extrabold text-sm text-white uppercase tracking-wider font-mono font-outfit">Sustainability Report</h4>
+              <h4 className="font-outfit font-extrabold text-sm text-white uppercase tracking-wider font-mono font-outfit">Sustainability Report</h4>
               <div className="p-4 bg-white/5 rounded-2xl space-y-2 text-xs font-light text-neutral-300 leading-relaxed font-mono">
                 <p>- Carbon Offsets: {telemetry.sustainability.carbon_saved_kg} kg CO2</p>
                 <p>- HVAC staging reduced power grid spikes by 12%.</p>
@@ -1435,7 +1435,7 @@ export default function Dashboard() {
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="glass-card p-6 rounded-3xl space-y-4">
               <h3 className="text-sm font-outfit font-extrabold text-white uppercase tracking-widest font-mono">AI Scenario Simulator</h3>
-              <p class="text-xs text-neutral-400">Run predictions for unexpected stadium events.</p>
+              <p className="text-xs text-neutral-400">Run predictions for unexpected stadium events.</p>
               
               <div className="flex gap-2">
                 <input 
