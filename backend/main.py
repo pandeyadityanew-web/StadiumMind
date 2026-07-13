@@ -34,6 +34,15 @@ app.add_middleware(
 # Initialize agent system
 agent_system = StadiumMindAgentSystem()
 
+def sanitize_input(text: str, max_length: int = 500) -> str:
+    if not text:
+        return ""
+    text = text.strip()
+    if len(text) > max_length:
+        text = text[:max_length]
+    # Prevent XSS and code injection
+    return text.replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;").replace("'", "&#x27;")
+
 # Schemas
 class CopilotRequest(BaseModel):
     query: str
@@ -104,11 +113,11 @@ def get_telemetry():
 @app.post("/api/v1/copilot")
 async def run_copilot(req: CopilotRequest):
     state = db.get_state()
-    state["language"] = req.language
+    state["language"] = sanitize_input(req.language, 10)
     if req.accessibility_profile:
         state["accessibility_profile"] = req.accessibility_profile
         
-    query = req.query
+    query = sanitize_input(req.query, 1000)
     
     # Check if there is an image ("Where am I?" OCR request)
     if req.image_data:
@@ -120,14 +129,15 @@ async def run_copilot(req: CopilotRequest):
 @app.post("/api/v1/simulator")
 async def run_simulator(req: SimulationRequest):
     state = db.get_state()
-    query = f"SIMULATION CHECK: {req.scenario}"
+    sanitized_scenario = sanitize_input(req.scenario, 1000)
+    query = f"SIMULATION CHECK: {sanitized_scenario}"
     
     # Run the collaborative multi-agent simulation
     res = await agent_system.run_collaboration(query, state)
     
     # Process simulation delta changes
     simulated_consequences = []
-    q_lower = req.scenario.lower()
+    q_lower = sanitized_scenario.lower()
     
     if "gate 5" in q_lower or "gate b" in q_lower:
         simulated_consequences = [
@@ -164,12 +174,18 @@ async def run_simulator(req: SimulationRequest):
 def trigger_emergency(req: EmergencyTrigger):
     import uuid
     incident_id = f"INC_{uuid.uuid4().hex[:6].upper()}"
+    
+    cat = sanitize_input(req.category, 50)
+    desc = sanitize_input(req.description, 300)
+    loc = sanitize_input(req.location_label, 100)
+    sev = sanitize_input(req.severity, 30)
+    
     incident = {
         "id": incident_id,
-        "category": req.category,
-        "description": req.description,
-        "location": req.location_label,
-        "severity": req.severity,
+        "category": cat,
+        "description": desc,
+        "location": loc,
+        "severity": sev,
         "timestamp": int(asyncio.get_event_loop().time())
     }
     db.add_incident(incident)
@@ -182,13 +198,14 @@ def trigger_emergency(req: EmergencyTrigger):
         "incident_id": incident_id,
         "dispatch_route": routes,
         "recommended_responders": ["Volunteer V_012", "Emergency Unit M_03"],
-        "announcement_draft": f"Attention fans near {req.location_label}. Please keep clear for responder personnel. Thank you."
+        "announcement_draft": f"Attention fans near {loc}. Please keep clear for responder personnel. Thank you."
     }
 
 @app.post("/api/v1/emergency/resolve/{incident_id}")
 def resolve_emergency(incident_id: str):
-    db.resolve_incident(incident_id)
-    return {"status": "resolved", "incident_id": incident_id}
+    sanitized_id = sanitize_input(incident_id, 50)
+    db.resolve_incident(sanitized_id)
+    return {"status": "resolved", "incident_id": sanitized_id}
 
 @app.post("/api/v1/vision/queue-detection")
 def run_vision_queue(req: VisionRequest):
