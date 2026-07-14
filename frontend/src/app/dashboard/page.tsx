@@ -200,6 +200,24 @@ export default function Dashboard() {
   const [activeMapRoute, setActiveMapRoute] = useState<boolean>(false);
   const [totalAttendeeScans, setTotalAttendeeScans] = useState<number>(62410);
 
+  // Session Access Auth
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
+  const [loginUsername, setLoginUsername] = useState<string>("admin");
+  const [loginPassword, setLoginPassword] = useState<string>("stadium2026");
+  const [loginError, setLoginError] = useState<string>("");
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loginUsername === "admin" && loginPassword === "stadium2026") {
+      setIsLoggedIn(true);
+      setLoginError("");
+      addNotification("Secure Authentication", "Access granted. Administrative session initialized.", "success");
+    } else {
+      setLoginError("Invalid administrative credentials. Access Denied.");
+      addNotification("Authentication Failure", "Invalid operations credentials detected.", "danger");
+    }
+  };
+
   // Simulator
   const [simQuery, setSimQuery] = useState<string>("");
   const [simLoading, setSimLoading] = useState<boolean>(false);
@@ -614,6 +632,74 @@ export default function Dashboard() {
     { id: "settings", name: "Settings", icon: <Settings className="w-4 h-4" /> }
   ];
 
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050505] text-white p-6 relative">
+        {/* Background Particles layer */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <canvas id="particles-canvas-next" className="absolute inset-0 w-full h-full opacity-40"></canvas>
+        </div>
+        
+        <div className="w-full max-w-md glass-card p-8 rounded-3xl space-y-6 glow-cyan z-10 border border-white/10 relative">
+          <div className="text-center space-y-2">
+            <div className="flex justify-center mb-2">
+              <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-white/10 flex items-center justify-center">
+                <div className="relative w-6 h-6 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border border-neonCyan/40 animate-pulse"></div>
+                  <div className="absolute w-4 h-4 rounded-full border border-white/20"></div>
+                  <div className="w-2 h-2 rounded-full bg-neonCyan"></div>
+                </div>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold font-outfit tracking-tight">StadiumMind OS</h2>
+            <p className="text-xs text-neutral-400">Authenticate Secure Operations Console</p>
+          </div>
+
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider">Username</label>
+              <input 
+                type="text" 
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                className="w-full bg-neutral-900 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-neonCyan transition-all"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider">Access Token / Password</label>
+              <input 
+                type="password" 
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full bg-neutral-900 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-neonCyan transition-all"
+                required
+              />
+            </div>
+
+            {loginError && (
+              <div className="text-[10px] text-neonRed font-mono bg-neonRed/10 border border-neonRed/20 p-2.5 rounded-xl">
+                {loginError}
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              className="w-full py-3 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-2xl text-xs transition-all font-outfit active:scale-95 duration-200"
+            >
+              Authenticate Secure Session
+            </button>
+          </form>
+
+          <div className="text-center pt-2">
+            <span className="text-[9px] text-neutral-500 font-mono uppercase tracking-widest">Authority Code: OPERATIONS_LEAD_ADMIN</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className={`min-h-screen flex flex-col bg-[#050505] text-[#F0F6FC] relative ${highContrast ? "contrast-125 saturate-150" : ""}`}
@@ -801,7 +887,11 @@ export default function Dashboard() {
                 <div className="border-t border-white/5 my-1"></div>
                 
                 <button 
-                  onClick={() => { addNotification("Platform link shutdown", "Lead Admin session ended.", "warning"); setProfileOpen(false); }} 
+                  onClick={() => { 
+                    setIsLoggedIn(false);
+                    setProfileOpen(false); 
+                    addNotification("Platform link shutdown", "Lead Admin session ended.", "warning"); 
+                  }} 
                   className="w-full text-left px-3 py-2 text-xs text-neonRed hover:bg-neonRed/10 rounded-xl transition-all font-outfit font-semibold"
                 >
                   Sign Out

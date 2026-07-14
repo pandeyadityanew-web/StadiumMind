@@ -3,7 +3,8 @@ import json
 import asyncio
 import logging
 from typing import Dict, Any, Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -30,6 +31,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: ws: wss:; "
+        "img-src 'self' data: https: http:; "
+        "connect-src 'self' ws: wss: https: http:;"
+    )
+    return response
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled operational exception on {request.url}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal operational database error occurred.", "code": "INTERNAL_ERROR"}
+    )
 
 # Initialize agent system
 agent_system = StadiumMindAgentSystem()

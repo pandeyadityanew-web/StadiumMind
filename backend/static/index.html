@@ -98,8 +98,67 @@
         </template>
     </div>
 
+    <!-- Login Panel Layout -->
+    <div x-show="!isLoggedIn" class="min-h-screen flex items-center justify-center bg-[#050505] text-white p-6 relative z-10">
+        <!-- Spotlight Background Effect -->
+        <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+            <div class="absolute w-[1000px] h-[1000px] rounded-full spotlight blur-3xl opacity-50 top-0 left-0"></div>
+        </div>
+        
+        <div class="w-full max-w-md glass-card p-8 rounded-3xl space-y-6 glow-cyan z-10 border border-white/10 relative">
+            <div class="text-center space-y-2">
+                <div class="flex justify-center mb-2">
+                    <div class="w-12 h-12 rounded-xl bg-neutral-900 border border-white/10 flex items-center justify-center">
+                        <div class="relative w-6 h-6 flex items-center justify-center">
+                            <div class="absolute inset-0 rounded-full border border-neonCyan/40 animate-pulse"></div>
+                            <div class="absolute w-4 h-4 rounded-full border border-white/20"></div>
+                            <div class="w-2 h-2 rounded-full bg-neonCyan"></div>
+                        </div>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-bold font-outfit tracking-tight">StadiumMind OS</h2>
+                <p class="text-xs text-neutral-400">Authenticate Secure Operations Console</p>
+            </div>
+
+            <form @submit.prevent="handleLoginSubmit()" class="space-y-4">
+                <div class="space-y-1.5">
+                    <label class="text-[10px] text-neutral-400 font-mono uppercase tracking-wider">Username</label>
+                    <input 
+                        type="text" 
+                        x-model="loginUsername"
+                        class="w-full bg-neutral-900 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-neonCyan transition-all"
+                        required
+                    />
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] text-neutral-400 font-mono uppercase tracking-wider">Access Token / Password</label>
+                    <input 
+                        type="password" 
+                        x-model="loginPassword"
+                        class="w-full bg-neutral-900 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-neonCyan transition-all"
+                        required
+                    />
+                </div>
+
+                <div x-show="loginError" class="text-[10px] text-neonRed font-mono bg-neonRed/10 border border-neonRed/20 p-2.5 rounded-xl" x-text="loginError" style="display: none;"></div>
+
+                <button 
+                    type="submit"
+                    class="w-full py-3 bg-neonCyan hover:bg-cyan-400 text-obsidian font-extrabold rounded-2xl text-xs transition-all font-outfit active:scale-95 duration-200"
+                >
+                    Authenticate Secure Session
+                </button>
+            </form>
+
+            <div class="text-center pt-2">
+                <span class="text-[9px] text-neutral-500 font-mono uppercase tracking-widest">Authority Code: OPERATIONS_LEAD_ADMIN</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Persistent Global Layout -->
-    <div class="min-h-screen flex flex-col z-10 relative" :class="highContrast ? 'contrast-125 saturate-150' : ''" :style="'font-size: ' + fontSize + 'px;'">
+    <div x-show="isLoggedIn" class="min-h-screen flex flex-col z-10 relative" :class="highContrast ? 'contrast-125 saturate-150' : ''" :style="'font-size: ' + fontSize + 'px;'">
         
         <!-- Navigation Header (Fixed/Sticky Top) -->
         <header class="sticky top-0 w-full glass-card border-b border-white/8 z-40 px-6 py-3.5 flex justify-between items-center rounded-b-3xl">
@@ -251,7 +310,7 @@
                         <div class="border-t border-white/5 my-1"></div>
                         
                         <button 
-                            @click="addNotification('Platform link shutdown', 'Lead Admin session ended.', 'warning'); profileOpen = false;" 
+                            @click="isLoggedIn = false; profileOpen = false; addNotification('Platform link shutdown', 'Lead Admin session ended.', 'warning');" 
                             class="w-full text-left px-3 py-2 text-xs text-neonRed hover:bg-neonRed/10 rounded-xl transition-all font-outfit font-semibold"
                         >
                             Sign Out
@@ -1287,6 +1346,22 @@
 
                 // Dynamic attendee scan counter
                 totalAttendeeScans: 62410,
+
+                // Session Access Auth
+                isLoggedIn: true,
+                loginUsername: 'admin',
+                loginPassword: 'stadium2026',
+                loginError: '',
+                handleLoginSubmit() {
+                    if (this.loginUsername === 'admin' && this.loginPassword === 'stadium2026') {
+                        this.isLoggedIn = true;
+                        this.loginError = '';
+                        this.addNotification('Secure Authentication', 'Access granted. Administrative session initialized.', 'success');
+                    } else {
+                        this.loginError = 'Invalid administrative credentials. Access Denied.';
+                        this.addNotification('Authentication Failure', 'Invalid operations credentials detected.', 'danger');
+                    }
+                },
 
                 // Briefing
                 liveBriefingText: 'Stadium Operating System online. Ingress checkpoints reporting nominal wait lines.',
